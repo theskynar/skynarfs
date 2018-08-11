@@ -11,4 +11,5 @@ func main() {
 	if err := filesystem.CreateVirtualDisk("/tmp/myhd", 2048); err != nil {
 		panic(err)
 	}
+	fmt.Println("Done")
 }
