@@ -1,17 +1,16 @@
 package filesystem
 
-import (
-	"os"
+type VDiskAttributes struct {
+	Diskname  string
+	Blocks    uint64
+	Blocksize uint64
+	Size      uint64
+	Mode      uint32
+}
 
-	"github.com/pkg/errors"
-)
+type VDisk struct {
+	attr *VDiskAttributes
+}
 
-// Creates a virtual disk based on a path
-func CreateVirtualDisk(name string, size int32) error {
-	f, err := os.Create(name)
-	if err != nil {
-		return errors.Wrap(err, "Failed to create virtual disk")
-	}
-	f.Close()
-	return nil
+type VDiskManager struct {
 }

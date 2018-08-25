@@ -1,15 +1,18 @@
 package main
 
 import (
-	"fmt"
-
-	"github.com/theskynar/skynarfs/filesystem"
+	"github.com/theskynar/skynarfs/commands"
+	"github.com/theskynar/skynarfs/config"
 )
 
-func main() {
-	fmt.Printf("Starting filesystem")
-	if err := filesystem.CreateVirtualDisk("/tmp/myhd", 2048); err != nil {
+func init() {
+	if err := config.Validate(); err != nil {
 		panic(err)
 	}
-	fmt.Println("Done")
+}
+
+func main() {
+	if err := commands.Execute(); err != nil {
+		panic(err)
+	}
 }
