@@ -51,9 +51,6 @@ class Storage extends EventEmitter {
   async synchronizeDisksInfo() {
     try {
       const out = await fs.readFile('tmp/main', { flags: 'r', encoding: 'utf8' });
-      if (out) {
-        console.info('[MAIN] Disks', out);
-      }
     } catch (err) {
       console.error('[MAIN] Failed to synchronize disks information');
     }
