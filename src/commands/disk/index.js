@@ -35,10 +35,13 @@ class DiskCmd {
           cb(this.chalk['red'](err));
         }
         try {
+          const bytes = this.storage.getAvailableBlock();
           await operations.createDisk(args);
+          await operations.persistNewDisk(bytes, result.value);
           console.info(`[DISK] Virtual disk ${args.name} with size ${args.blocks * args.blocksize} created successfully\n`);
           cb(null);
         } catch (err) {
+          console.log('>>>>>>>', err);
           cb(this.chalk['red'](err));
         }
       });

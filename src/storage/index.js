@@ -12,6 +12,10 @@ class Storage extends EventEmitter {
     super();
 
     this.mainAvailableBlocks = [];
+    for (let i = 1; i <= 1000; i++) {
+      this.mainAvailableBlocks.push(i);
+    }
+
     this.mainDisksInfo = {};
   }
 
@@ -30,17 +34,19 @@ class Storage extends EventEmitter {
 
     this.intervalId = setInterval(async () => {
       await this.synchronizeDisksInfo();
-    }, 500);
+    }, 2000);
   }
 
+
+  /**
+   * Fetch the next available block in the disk
+   * @returns {Object} {start, end}
+   * @memberof Storage
+   */
   getAvailableBlock() {
     const block = this.mainAvailableBlocks.shift();
-    const start = block * 512 === 0 ? 0 : block * 512 + 1;
-
-    return {
-      start: block * 512,
-      end: start + 512
-    }
+    const bytes = parseInt(block) * 512;
+    return block;
   }
 
 
@@ -51,6 +57,9 @@ class Storage extends EventEmitter {
   async synchronizeDisksInfo() {
     try {
       const out = await fs.readFile('tmp/main', { flags: 'r', encoding: 'utf8' });
+      if (out.trim()) {
+        // console.info('[MAIN] Disks', out);
+      }
     } catch (err) {
       console.error('[MAIN] Failed to synchronize disks information');
     }
