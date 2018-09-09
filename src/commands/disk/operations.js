@@ -2,24 +2,20 @@
 
 const fs = require('fs-extra');
 
-
 /**
  * Persist every created and manipulated disk on the filesystem
  * @param {DiskOptions} opts { name, blocksize, blocks }
  */
-async function persistDisk(opts) {
-
-  const data = await fs.open('tmp/main');
-  console.log(data);
+async function persistNewDisk(block, opts) {
+  console.log('>>>>>>', block, opts);
+  const fd = await fs.open('tmp/main', 'r+');
   const buff = Buffer.alloc(512);
-  let start = 0, end = 512;
-  for (let i = 0; i < 1000; i++) {
-    const bytes = fs.read(data.fd, buff, 0, start, end);
-    start = end + 1;
-    end += 512;
+  const content = JSON.stringify(opts);
+  buff.write(content, 0, 'binary');
+  await fs.write(fd, buff, 0, buff.byteOffset, block * 512);
+  const bytes2 = await fs.read(fd, buff, block * 512, 512);
 
-    console.log(bytes);
-  }
+  console.log('BYTES: >>>>', bytes2);
 }
 
 /**
@@ -39,5 +35,6 @@ async function createDisk(opts) {
 
 
 module.exports = {
-  createDisk
+  createDisk,
+  persistNewDisk
 };
