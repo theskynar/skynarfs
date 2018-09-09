@@ -30,12 +30,12 @@ module.exports = {
     }],
     "max-len": [
       "error", {
-        "code": 120
+        "code": 180
       }
     ],
     "comma-dangle": ["error", "never"],
     "strict": ["error", "global"],
-    "no-console": ["error", { allow: ["dir", "error", "log", "warn"] }],
+    "no-console": ["error", { allow: ["dir", "error", "log", "warn", "info"] }],
     "no-constant-condition": ["error", { "checkLoops": false }],
     "no-unused-vars": ["error", { "args": "none" }],
     "no-case-declarations": "off",
