@@ -1,0 +1,25 @@
+{
+  "name": "os-fei",
+  "version": "1.0.0",
+  "description": "University project which focuses on understanding operational systems filesystem.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theskynar/skynarfs.git"
+  },
+  "author": "Skynar",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/theskynar/skynarfs/issues"
+  },
+  "homepage": "https://github.com/theskynar/skynarfs#readme",
+  "dependencies": {
+    "fs-extra": "^7.0.0",
+    "joi": "^13.6.0",
+    "vorpal": "^1.12.0",
+    "vorpal-repl": "^1.1.8"
+  }
+}
