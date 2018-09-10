@@ -8,14 +8,15 @@ const DiskCmd = require('./disk');
 
 class RootCmd {
   constructor(storage) {
-    this.vorpal = Vorpal();
     this.storage = storage;
   }
 
   init() {
-    new DiskCmd(this.vorpal, this.storage).commands();
+    this.diskMode = new Vorpal().delimiter('$skynarfs');
+    this.replMode = new Vorpal().delimiter('$skynarfs');
+    this.diskMode.show();
 
-    this.vorpal.delimiter('skynarfs').show();
+    new DiskCmd(this.diskMode, this.replMode, this.storage).commands();
   }
 }
 
