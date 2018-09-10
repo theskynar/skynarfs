@@ -3,8 +3,6 @@
 const EventEmitter = require('events');
 const fs = require('fs-extra');
 
-
-
 /**
  * @class Storage
  * @extends {EventEmitter}
@@ -31,7 +29,7 @@ class Storage extends EventEmitter {
         fs.writeFileSync('tmp/main', buffer, { encoding: 'binary' });
       }
     } catch (err) {
-      console.error('[MAIN ]Failed to create main disk file', err);
+      console.error('[MAIN] Failed to create main disk file', err);
     }
 
     this.intervalId = setInterval(async () => {
