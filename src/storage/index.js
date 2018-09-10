@@ -14,6 +14,8 @@ class Storage extends EventEmitter {
     this.mainAvailableBlocks = new Array(1000).fill(0);
     this.mainDisksInfo = {};
     this.diskNames = [];
+
+    this.currentDisk = null;
   }
 
   async init() {

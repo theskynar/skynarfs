@@ -4,16 +4,19 @@ const repl = require('vorpal-repl');
 const util = require('util');
 
 const { createValidation, commonValidation } = require('./schema');
+const { fileValidation } = require('../file/schema');
 const operations = require('./operations');
+const DiskStorage = require('../../storage/disk-storage');
 
 class DiskCmd {
   /**
    * 
    * @param {Vorpal} vorpal 
    */
-  constructor(vorpal, storage) {
-    this.vorpal = vorpal;
-    this.chalk = vorpal.chalk;
+  constructor(diskMode, replMode, storage) {
+    this.diskMode = diskMode;
+    this.replMode = replMode;
+    this.chalk = this.diskMode.chalk;
     this.storage = storage;
   }
 
@@ -26,7 +29,7 @@ class DiskCmd {
   }
 
   create() {
-    this.vorpal
+    this.diskMode
       .command('createdisk <name> <blocksize> <blocks>', 'DISK')
       .action(async (args, cb) => {
         const result = createValidation(args);
@@ -38,6 +41,10 @@ class DiskCmd {
           const bytes = this.storage.getAvailableBlock();
           await operations.createDisk(args);
           await operations.persistNewDisk(bytes, result.value);
+
+          this.storage.currentDisk = new DiskStorage(args.name);
+          this.storage.currentDisk.toBinary();
+
           console.info(
             this.chalk['green'](`\n[DISK] Virtual disk ${args.name} with size ${args.blocks * args.blocksize} created successfully\n`)
           );
@@ -49,13 +56,13 @@ class DiskCmd {
   }
 
   format() {
-    this.vorpal
+    this.diskMode
       .command('formatdisk <name>', 'DISK')
       .action(async (args, cb) => {
         const result = commonValidation(args);
         if (result.error) {
           const err = `\nFailed to format disk, try again:\n${util.inspect(result.error.details, false, Infinity)}\n`;
-          cb(this.vorpal.chalk['red'](err));
+          cb(this.diskMode.chalk['red'](err));
         }
 
         try {
@@ -74,14 +81,14 @@ class DiskCmd {
   }
 
   type() {
-    this.vorpal
+    this.diskMode
       .command('typedisk <name>', 'DISK')
       .action(async (args, cb) => {
         const result = commonValidation(args);
         if (result.error) {
           const err = `\nFailed to fetch content from the disk, 
             try again:\n${util.inspect(result.error.details, false, Infinity)}\n`;
-          cb(this.vorpal.chalk['red'](err));
+          cb(this.diskMode.chalk['red'](err));
         }
 
         try {
@@ -103,7 +110,7 @@ class DiskCmd {
   }
 
   list() {
-    this.vorpal
+    this.diskMode
       .command('lsdisk', 'DISK')
       .action((args, cb) => {
         console.log(this.chalk['green']('\nAvailable disks: '));
@@ -118,7 +125,7 @@ class DiskCmd {
   }
 
   enter() {
-    this.vorpal
+    this.diskMode
       .command('enterdisk <name>', 'DISK')
       .delimiter()
       .action((args, cb) => {
@@ -126,13 +133,18 @@ class DiskCmd {
         if (result.error) {
           const err = `\nFailed to enter disk, 
             try again:\n${util.inspect(result.error.details, false, Infinity)}\n`;
-          cb(this.vorpal.chalk['red'](err));
+          cb(this.diskMode.chalk['red'](err));
         }
 
-        this.vorpal
-          .delimiter(`${args.name}> `)
-          .use(repl)
-          .show(cb);
+        if (!this.storage.mainDisksInfo[args.name]) {
+          cb(this.diskMode.chalk['red']('Disk was not found'));
+          return;
+        }
+
+        this.storage.currentDisk = new DiskStorage(args.name);
+        this.storage.currentDisk.fromBinary();
+
+        this.replMode.delimiter(`$skynarfs:${args.name}> `).show();
       });
   }
 }
