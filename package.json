@@ -20,7 +20,11 @@
     "fs-extra": "^7.0.0",
     "joi": "^13.6.0",
     "lodash": "^4.17.10",
+    "npm": "^6.4.1",
     "vorpal": "^1.12.0",
     "vorpal-repl": "^1.1.8"
+  },
+  "bin": {
+    "skynarfs": "src/index.js"
   }
 }
