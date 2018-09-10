@@ -11,8 +11,11 @@ try {
     storage.stop();
   });
 
-  storage.init();
-  rootCommand.init();
+  storage.init().then(() => {
+    rootCommand.init();
+  }).catch((err) => {
+    process.kill(process.pid, 'SIGINT');
+  });
 } catch (err) {
   console.error('Error: ', err.message, err.stack);
 }
