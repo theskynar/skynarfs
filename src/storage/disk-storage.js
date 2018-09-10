@@ -194,8 +194,7 @@ class DiskStorage {
   toBinary() {
     try {
       const text = JSON.stringify(this.diskTree);
-      const buffer = Buffer.from(text);
-      fs.writeFileSync(`tmp/disks/${this.name}/address`, buffer, { encoding: 'binary' });
+      fs.writeFileSync(`tmp/disks/${this.name}/address`, text);
     } catch (e) {
       console.error('Error on convert disk to Binary File', e);
     }
