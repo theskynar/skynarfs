@@ -3,8 +3,6 @@
 const EventEmitter = require('events');
 const fs = require('fs-extra');
 
-
-
 /**
  * @class Storage
  * @extends {EventEmitter}
@@ -38,8 +36,9 @@ class Storage extends EventEmitter {
   getAvailableBlock() {
     const block = this.mainAvailableBlocks.shift();
     const start = block * 512 === 0 ? 0 : block * 512 + 1;
+
     return {
-      start: block * 512
+      start: block * 512,
       end: start + 512
     }
   }
