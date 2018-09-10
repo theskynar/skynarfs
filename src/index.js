@@ -1,6 +1,6 @@
 'use strict';
 
-const RootCmd = require('./commands/index');
+const RootCmd = require('./commands');
 const Storage = require('./storage');
 
 try {
