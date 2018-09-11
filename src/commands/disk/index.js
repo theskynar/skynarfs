@@ -74,6 +74,10 @@ class DiskCmd {
 
           await operations.formatDisk(disk);
           console.info(this.chalk['green'](`\n[DISK] Virtual disk ${args.name} was formatted\n`));
+
+          const diskStorage = new DiskStorage(disk.name, disk.blocks, disk.blocksize);
+          diskStorage.toBinary();
+          
           cb();
         } catch (err) {
           cb(this.chalk['red'](`\nFailed to format disk ${err}\n`));

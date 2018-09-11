@@ -21,7 +21,8 @@ class FileCmd {
   commands() {
     this.replCmd.command('cd <dirname>', 'DIR').action(this.enterDir.bind(this));
     this.replCmd.command('mkdir <dirname>', 'DIR').action(this.createDir.bind(this));
-    this.replCmd.command('rm <dirname>', 'DIR').option('-r, --recursive', 'Remove recursive').action(this.remove.bind(this));
+    this.replCmd.command('rm <name>', 'DIR').option('-r, --recursive', 'Remove recursive').action(this.remove.bind(this));
+    this.replCmd.command('ls', 'DIr').action(this.listFolder.bind(this));
     this.replCmd.command('createfile <file>', 'FILE').action(this.createFile.bind(this));
   }
 
@@ -55,7 +56,19 @@ class FileCmd {
       cb(`Cannot remove file or directory '${name}'. Try to use --recursive.`);
     }
   }
-  
+
+  async listFolder(args, cb) {
+    try {
+      const folders = this.storage.currentDisk.availableFolders.map(x => x.name + '/').join('\n');
+      const files = this.storage.currentDisk.availableFiles.map(x => x.name).join('\n');
+
+      console.log([folders, files].join('\n'));
+      cb();
+    } catch (e) {
+      cb(e);
+    }
+  }
+
   async createFile({ file }, cb) {
     const currDisk = this.storage.currentDisk;
     console.log(this.storage.mainDisksInfo, currDisk.name);
