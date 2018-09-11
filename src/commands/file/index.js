@@ -21,6 +21,7 @@ class FileCmd {
   commands() {
     this.replCmd.command('cd <dirname>', 'DIR').action(this.enterDir.bind(this));
     this.replCmd.command('mkdir <dirname>', 'DIR').action(this.createDir.bind(this));
+    this.replCmd.command('rm <dirname>', 'DIR').option('-r, --recursive', 'Remove recursive').action(this.remove.bind(this));
   }
 
   async enterDir({ dirname }, cb) {
@@ -41,6 +42,16 @@ class FileCmd {
       cb();
     } else {
       cb(`Directory '${dirname}' already exists.`);
+    }
+  }
+
+  async remove({name, options}, cb) {
+    const success = this.storage.currentDisk.remove(name, options.recursive);
+
+    if (success) {
+      cb();
+    } else {
+      cb(`Cannot remove file or directory '${name}'. Try to use --recursive.`);
     }
   }
 }

@@ -126,7 +126,7 @@ class DiskStorage {
    * @returns
    * @memberof DiskStorage
    */
-  remove(name, recursive = true) {
+  remove(name, recursive = false) {
     const index = this.currentNode.childrens.findIndex(x => x.name === name);
     const item = this.currentNode.childrens[index];
 
