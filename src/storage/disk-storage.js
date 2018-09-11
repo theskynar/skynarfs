@@ -86,6 +86,7 @@ class DiskStorage {
     };
 
     this.currentNode.childrens.push(folder);
+    this.toBinary();
     return true;
   }
 
@@ -113,6 +114,7 @@ class DiskStorage {
     };
 
     this.currentNode.childrens.push(file);
+    this.toBinary();
     return true;
   }
 
@@ -139,6 +141,8 @@ class DiskStorage {
     }
 
     this.currentNode.childrens.splice(index, 1);
+    this.toBinary();
+    return true;
   }
 
   /**
