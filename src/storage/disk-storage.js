@@ -12,7 +12,7 @@ class DiskStorage {
     this.name = name;
     this.blocks = blocks;
     this.blockSize = blockSize;
-    this.diskTree = { name: '~', availableBlocks: [`${blocks}:${blockSize}`], childrens: [] };
+    this.diskTree = { name: '~', availableBlocks: [`1:${blocks}`], childrens: [] };
     this.navigationStack = [];
   }
 
@@ -236,7 +236,50 @@ class DiskStorage {
    * @memberof DiskStorage
    */
   addAvailableBlock(blockIndex, blockCount) {
+    const rightSiblingIndex = this.diskTree
+      .availableBlocks
+      .findIndex(x => !!x.match(new RegExp(`^${blockIndex + blockCount}:`, 'g')));
 
+    let leftSiblingIndex = this.diskTree
+      .availableBlocks
+      .findIndex(x => {
+        const [curBlockIndex, curBlockCount] = x.split(':').map(y => parseInt(y));
+
+        return curBlockIndex + curBlockCount === blockIndex;
+      });
+
+    if (leftSiblingIndex >= 0 && rightSiblingIndex >= 0) {
+      const [leftIndex, leftCount] = this.diskTree
+        .availableBlocks[leftSiblingIndex]
+        .split(':').map(y => parseInt(y));
+
+      const [rightIndex, rightCount] = this.diskTree
+        .availableBlocks[rightSiblingIndex]
+        .split(':').map(y => parseInt(y));
+
+      this.diskTree.availableBlocks.splice(leftSiblingIndex, 1);
+      this.diskTree.availableBlocks.splice(rightSiblingIndex, 1);
+
+      this.diskTree.availableBlocks.unshift(`${leftIndex}:${leftCount + blockCount + rightCount}`);
+    } else if (leftSiblingIndex >= 0) {
+      const [leftIndex, leftCount] = this.diskTree
+        .availableBlocks[leftSiblingIndex]
+        .split(':').map(y => parseInt(y));
+
+      this.diskTree.availableBlocks.splice(leftSiblingIndex, 1); 
+      
+      this.diskTree.availableBlocks.unshift(`${leftIndex}:${leftCount + blockCount}`);
+    } else if (rightSiblingIndex >= 0) {
+      const [rightIndex, rightCount] = this.diskTree
+        .availableBlocks[rightSiblingIndex]
+        .split(':').map(y => parseInt(y));
+
+      this.diskTree.availableBlocks.splice(rightSiblingIndex, 1); 
+      
+      this.diskTree.availableBlocks.unshift(`${blockIndex}:${blockCount + rightCount}`);
+    } else {
+      this.diskTree.availableBlocks.unshift(`${blockIndex}:${blockCount}`);
+    }
   }
 
   /**
