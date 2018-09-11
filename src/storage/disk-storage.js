@@ -8,9 +8,11 @@ const fs = require('fs');
  * @class DiskStorage
  */
 class DiskStorage {
-  constructor(name) {
+  constructor(name, blocks, blockSize) {
     this.name = name;
-    this.diskTree = { name: 'root', childrens: [] };
+    this.blocks = blocks;
+    this.blockSize = blockSize;
+    this.diskTree = { name: '~', availableBlocks: [`1:${blocks}`], childrens: [] };
     this.navigationStack = [];
   }
 
@@ -21,7 +23,7 @@ class DiskStorage {
    * @memberof DiskStorage
    */
   get currentNode() {
-    return this.navigationStack[this.navigationStack.length - 1];
+    return this.navigationStack[this.navigationStack.length - 1] || this.diskTree;
   }
 
   /**
@@ -31,7 +33,7 @@ class DiskStorage {
    * @memberof DiskStorage
    */
   get currentParent() {
-    return this.navigationStack[this.navigationStack.length - 2];
+    return this.navigationStack[this.navigationStack.length - 2] || this.diskTree;
   }
 
   /**
@@ -55,6 +57,16 @@ class DiskStorage {
   }
 
   /**
+   * Return path by navigation stack.
+   *
+   * @readonly
+   * @memberof DiskStorage
+   */
+  get path() {
+    return '/' + this.navigationStack.map(x => x.name).join('/');
+  }
+
+  /**
    * Insert folder in the current node.
    *
    * @param {*} name
@@ -74,6 +86,7 @@ class DiskStorage {
     };
 
     this.currentNode.childrens.push(folder);
+    this.toBinary();
     return true;
   }
 
@@ -91,6 +104,8 @@ class DiskStorage {
       return false;
     }
 
+    this.removeAvailableBlock(blockIndex, blockCount);
+
     const file = {
       name,
       blockIndex,
@@ -99,6 +114,7 @@ class DiskStorage {
     };
 
     this.currentNode.childrens.push(file);
+    this.toBinary();
     return true;
   }
 
@@ -110,9 +126,13 @@ class DiskStorage {
    * @returns
    * @memberof DiskStorage
    */
-  remove(name, recursive = true) {
+  remove(name, recursive = false) {
     const index = this.currentNode.childrens.findIndex(x => x.name === name);
     const item = this.currentNode.childrens[index];
+
+    if (item.type === 'file') {
+      this.addAvailableBlock(item.blockIndex, item.blockCount);
+    }
 
     if (index === -1) {
       return false;
@@ -121,6 +141,8 @@ class DiskStorage {
     }
 
     this.currentNode.childrens.splice(index, 1);
+    this.toBinary();
+    return true;
   }
 
   /**
@@ -141,23 +163,29 @@ class DiskStorage {
   /**
    * Navigate to folder inside current node.
    *
-   * @param {*} folderName
+   * @param {*} path
    * @returns
    * @memberof DiskStorage
    */
-  navigateTo(folderName) {
-    if (folderName.trim() === '..') {
-      return this.navigateBack();
-    }
-
-    const nextNode = this.availableFolders.find(x => x.name === folderName);
-
-    if (nextNode) {
+  navigateTo(path) {
+    const folders = path.split('/');
+    
+    for (const folderName of folders) {
+      if (folderName.trim() === '..') {
+        this.navigateBack();
+        continue;
+      }
+  
+      const nextNode = this.availableFolders.find(x => x.name === folderName);
+  
+      if (!nextNode) {
+        return false;
+      }
+      
       this.navigationStack.push(nextNode);
-      return true;
     }
 
-    return false;
+    return true;
   }
 
   /**
@@ -170,6 +198,100 @@ class DiskStorage {
    */
   parentHasItem(name, type) {
     return !!this.currentParent.childrens.find(x => x.name === name && x.type === type);
+  }
+
+  /**
+   * Return next available block index by blockCount.
+   *
+   * @param {*} blockCount
+   * @returns
+   * @memberof DiskStorage
+   */
+  nextAvailableBlock(blockCount) {
+    for (const availableBlock of this.diskTree.availableBlocks) {
+      const [blockIndex, blockSize] = availableBlock.split(":").map(x => parseInt(x));
+
+      if (blockCount <= blockSize) {
+        return blockIndex;
+      }
+    }
+  }
+
+  /**
+   * Update availableBlock on add new file.
+   *
+   * @param {*} blockIndex
+   * @param {*} blockCount
+   * @memberof DiskStorage
+   */
+  removeAvailableBlock(blockIndex, blockCount) {
+    const currentBlockIndex = this.diskTree
+      .availableBlocks
+      .findIndex(x => x.match(new RegExp(`^${blockIndex}:`, 'g')));
+
+    const [avBlockIndex, avBlockCount] = this.diskTree.availableBlocks[currentBlockIndex]
+      .split(':')
+      .map(x => parseInt(x));
+
+    if (avBlockCount === blockCount) {
+      this.diskTree.availableBlocks.splice(currentBlockIndex, 1);
+    } else {
+      this.diskTree.availableBlocks[currentBlockIndex] = `${avBlockIndex}:${avBlockCount - blockCount}`;
+    }
+  }
+
+  /**
+   * Update availableBlock on remove file.
+   *
+   * @param {*} blockIndex
+   * @param {*} blockCount
+   * @memberof DiskStorage
+   */
+  addAvailableBlock(blockIndex, blockCount) {
+    const rightSiblingIndex = this.diskTree
+      .availableBlocks
+      .findIndex(x => !!x.match(new RegExp(`^${blockIndex + blockCount}:`, 'g')));
+
+    let leftSiblingIndex = this.diskTree
+      .availableBlocks
+      .findIndex(x => {
+        const [curBlockIndex, curBlockCount] = x.split(':').map(y => parseInt(y));
+
+        return curBlockIndex + curBlockCount === blockIndex;
+      });
+
+    if (leftSiblingIndex >= 0 && rightSiblingIndex >= 0) {
+      const [leftIndex, leftCount] = this.diskTree
+        .availableBlocks[leftSiblingIndex]
+        .split(':').map(y => parseInt(y));
+
+      const [rightIndex, rightCount] = this.diskTree
+        .availableBlocks[rightSiblingIndex]
+        .split(':').map(y => parseInt(y));
+
+      this.diskTree.availableBlocks.splice(leftSiblingIndex, 1);
+      this.diskTree.availableBlocks.splice(rightSiblingIndex, 1);
+
+      this.diskTree.availableBlocks.unshift(`${leftIndex}:${leftCount + blockCount + rightCount}`);
+    } else if (leftSiblingIndex >= 0) {
+      const [leftIndex, leftCount] = this.diskTree
+        .availableBlocks[leftSiblingIndex]
+        .split(':').map(y => parseInt(y));
+
+      this.diskTree.availableBlocks.splice(leftSiblingIndex, 1); 
+      
+      this.diskTree.availableBlocks.unshift(`${leftIndex}:${leftCount + blockCount}`);
+    } else if (rightSiblingIndex >= 0) {
+      const [rightIndex, rightCount] = this.diskTree
+        .availableBlocks[rightSiblingIndex]
+        .split(':').map(y => parseInt(y));
+
+      this.diskTree.availableBlocks.splice(rightSiblingIndex, 1); 
+      
+      this.diskTree.availableBlocks.unshift(`${blockIndex}:${blockCount + rightCount}`);
+    } else {
+      this.diskTree.availableBlocks.unshift(`${blockIndex}:${blockCount}`);
+    }
   }
 
   /**
@@ -194,7 +316,7 @@ class DiskStorage {
   toBinary() {
     try {
       const text = JSON.stringify(this.diskTree);
-      fs.writeFileSync(`tmp/disks/${this.name}/address`, text, { encoding: 'binary' });
+      fs.writeFileSync(`tmp/disks/${this.name}/address`, text);
     } catch (e) {
       console.error('Error on convert disk to Binary File', e);
     }
