@@ -126,6 +126,10 @@ class DiskStorage {
     const index = this.currentNode.childrens.findIndex(x => x.name === name);
     const item = this.currentNode.childrens[index];
 
+    if (item.type === 'file') {
+
+    }
+
     if (index === -1) {
       return false;
     } else if (item.childrens.length > 0 && !recursive) {
@@ -202,20 +206,37 @@ class DiskStorage {
   }
 
   /**
-   * Update availableBlock.
+   * Update availableBlock on add new file.
    *
    * @param {*} blockIndex
    * @param {*} blockCount
    * @memberof DiskStorage
    */
-  updateAvailableBlock(blockIndex, blockCount) {
-    const availableBlockIndex = this.diskTree
+  removeAvailableBlock(blockIndex, blockCount) {
+    const currentBlockIndex = this.diskTree
       .availableBlocks
       .findIndex(x => x.match(new RegExp(`^${blockIndex}:`, 'g')));
 
-    const [availableBlockIndex, availableBlockCount] = this.diskTree.availableBlocks[availableBlockIndex]
+    const [avBlockIndex, avBlockCount] = this.diskTree.availableBlocks[currentBlockIndex]
       .split(':')
       .map(x => parseInt(x));
+
+    if (avBlockCount === blockCount) {
+      this.diskTree.availableBlocks.splice(currentBlockIndex, 1);
+    } else {
+      this.diskTree.availableBlocks[currentBlockIndex] = `${avBlockIndex}:${avBlockCount - blockCount}`;
+    }
+  }
+
+  /**
+   * Update availableBlock on remove file.
+   *
+   * @param {*} blockIndex
+   * @param {*} blockCount
+   * @memberof DiskStorage
+   */
+  addAvailableBlock(blockIndex, blockCount) {
+
   }
 
   /**
