@@ -103,6 +103,8 @@ class DiskStorage {
       return false;
     }
 
+    this.removeAvailableBlock(blockIndex, blockCount);
+
     const file = {
       name,
       blockIndex,
@@ -127,7 +129,7 @@ class DiskStorage {
     const item = this.currentNode.childrens[index];
 
     if (item.type === 'file') {
-
+      this.addAvailableBlock(item.blockIndex, item.blockCount);
     }
 
     if (index === -1) {
