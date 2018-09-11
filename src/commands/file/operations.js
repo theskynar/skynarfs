@@ -8,8 +8,7 @@ const fs = require('fs-extra');
  * @param {String} file path
  * @returns {String} Content
  */
-async function fetchContent(file, diskInfo) {
-  const diskSize = diskInfo.blocks * diskInfo.blocksize - diskInfo.remainingSize;
+async function fileStats(file) {
   const exists = await fs.exists(file);
   if (!exists) {
     throw new Error(`File ${file} does not exist`);
@@ -20,22 +19,23 @@ async function fetchContent(file, diskInfo) {
     throw new Error(`The ${file} is a directory`);
   }
 
-  if (file.size > (diskInfo.blocks * diskInfo.blocksize)) {
-    throw new Error(`Insufficient space on disk ${diskInfo.name}.\nFile contains ${file.size} bytes, but the disk is up to ${diskSize}`);
-  }
-
-  const fd = await fs.open(file, 'r');
-
-  for (let i = 0; i < stats.blocks; i++) {
-    const reader = await fs.read(fd, Buffer.alloc(stats.blksize), 0, stats.blksize, i * stats.blksize);
-
-    console.log('>>>', reader.buffer.toString());
-  }
-
+  return stats;
 }
 
 
+async function persistFile(file, stats, diskInfo) {
+  const fileFD = fs.open(file, 'r');
+  const diskFD = fs.open(`tmp/disks/${diskInfo.name}/disk`);
+
+  for (let i = 0; i < stats.blocks; i++) {
+    const { buffer } = await fs.read(fileFD, Buffer.alloc(stats.blksize), 0, stats.blksize, i * stats.blksize);
+    console.log('>>>>', buffer.toString(), buffer.toString(2));
+  }
+}
+
+function parseToBin() { }
+
 module.exports = {
-  fetchContent,
-  //persistOnDisk
+  fileStats,
+  persistFile
 };

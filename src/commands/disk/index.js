@@ -42,7 +42,8 @@ class DiskCmd {
           await operations.createDisk(args);
           await operations.persistNewDisk(bytes, result.value);
 
-          this.storage.currentDisk = new DiskStorage(args.name);
+          const diskInfo = this.storage.mainDisksInfo[args.name];
+          this.storage.currentDisk = new DiskStorage(args.name, diskInfo.blocks, diskInfo.blocksize);
           this.storage.currentDisk.toBinary();
 
           console.info(
@@ -136,12 +137,13 @@ class DiskCmd {
           cb(this.diskMode.chalk['red'](err));
         }
 
-        if (!this.storage.mainDisksInfo[args.name]) {
+        const diskInfo = this.storage.mainDisksInfo[args.name];
+        if (!diskInfo) {
           cb(this.diskMode.chalk['red']('Disk was not found'));
           return;
         }
 
-        this.storage.currentDisk = new DiskStorage(args.name);
+        this.storage.currentDisk = new DiskStorage(args.name, diskInfo.blocks, diskInfo.blocksize);
         this.storage.currentDisk.fromBinary();
 
         this.replMode.delimiter(`$skynarfs:${args.name}:${this.storage.currentDisk.path}> `).show();

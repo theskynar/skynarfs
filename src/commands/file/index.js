@@ -22,6 +22,7 @@ class FileCmd {
     this.replCmd.command('cd <dirname>', 'DIR').action(this.enterDir.bind(this));
     this.replCmd.command('mkdir <dirname>', 'DIR').action(this.createDir.bind(this));
     this.replCmd.command('rm <dirname>', 'DIR').option('-r, --recursive', 'Remove recursive').action(this.remove.bind(this));
+    this.replCmd.command('createfile <file>', 'FILE').action(this.createFile.bind(this));
   }
 
   async enterDir({ dirname }, cb) {
@@ -53,6 +54,27 @@ class FileCmd {
     } else {
       cb(`Cannot remove file or directory '${name}'. Try to use --recursive.`);
     }
+  }
+  
+  async createFile({ file }, cb) {
+    const currDisk = this.storage.currentDisk;
+    console.log(this.storage.mainDisksInfo, currDisk.name);
+    const diskInfo = this.storage.mainDisksInfo[currDisk.name];
+    if (!diskInfo) {
+      cb(new Error(`Disk ${currDisk.name} was not found`));
+    }
+
+    const stats = await operations.fileStats(file);
+    const blockCount = Math.ceil(stats.size / diskInfo.blocks);
+    const blockIndex = currDisk.nextAvailableBlock(blockCount);
+
+    await operations.persistFile(file, stats, diskInfo);
+    cb();
+    // if (success) {
+    //   cb();
+    // } else {
+    //   cb(`Directory '${file}' already exists.`);
+    // }
   }
 }
 
