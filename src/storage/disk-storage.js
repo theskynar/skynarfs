@@ -163,23 +163,29 @@ class DiskStorage {
   /**
    * Navigate to folder inside current node.
    *
-   * @param {*} folderName
+   * @param {*} path
    * @returns
    * @memberof DiskStorage
    */
-  navigateTo(folderName) {
-    if (folderName.trim() === '..') {
-      return this.navigateBack();
-    }
-
-    const nextNode = this.availableFolders.find(x => x.name === folderName);
-
-    if (nextNode) {
+  navigateTo(path) {
+    const folders = path.split('/');
+    
+    for (const folderName of folders) {
+      if (folderName.trim() === '..') {
+        this.navigateBack();
+        continue;
+      }
+  
+      const nextNode = this.availableFolders.find(x => x.name === folderName);
+  
+      if (!nextNode) {
+        return false;
+      }
+      
       this.navigationStack.push(nextNode);
-      return true;
     }
 
-    return false;
+    return true;
   }
 
   /**
