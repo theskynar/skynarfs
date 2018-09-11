@@ -144,7 +144,7 @@ class DiskCmd {
         this.storage.currentDisk = new DiskStorage(args.name);
         this.storage.currentDisk.fromBinary();
 
-        this.replMode.delimiter(`$skynarfs:${args.name}> `).show();
+        this.replMode.delimiter(`$skynarfs:${args.name}:${this.storage.currentDisk.path}> `).show();
       });
   }
 }

@@ -8,9 +8,11 @@ const fs = require('fs');
  * @class DiskStorage
  */
 class DiskStorage {
-  constructor(name) {
+  constructor(name, blocks, blockSize) {
     this.name = name;
-    this.diskTree = { name: 'root', childrens: [] };
+    this.blocks = blocks;
+    this.blockSize = blockSize;
+    this.diskTree = { name: '~', availableBlocks: [`${blocks}:${blockSize}`], childrens: [] };
     this.navigationStack = [];
   }
 
@@ -21,7 +23,7 @@ class DiskStorage {
    * @memberof DiskStorage
    */
   get currentNode() {
-    return this.navigationStack[this.navigationStack.length - 1];
+    return this.navigationStack[this.navigationStack.length - 1] || this.diskTree;
   }
 
   /**
@@ -31,7 +33,7 @@ class DiskStorage {
    * @memberof DiskStorage
    */
   get currentParent() {
-    return this.navigationStack[this.navigationStack.length - 2];
+    return this.navigationStack[this.navigationStack.length - 2] || this.diskTree;
   }
 
   /**
@@ -52,6 +54,16 @@ class DiskStorage {
    */
   get availableFolders() {
     return this.currentNode.childrens.filter(x => x.type === 'folder');
+  }
+
+  /**
+   * Return path by navigation stack.
+   *
+   * @readonly
+   * @memberof DiskStorage
+   */
+  get path() {
+    return '/' + this.navigationStack.map(x => x.name).join('/');
   }
 
   /**
@@ -170,6 +182,40 @@ class DiskStorage {
    */
   parentHasItem(name, type) {
     return !!this.currentParent.childrens.find(x => x.name === name && x.type === type);
+  }
+
+  /**
+   * Return next available block index by blockCount.
+   *
+   * @param {*} blockCount
+   * @returns
+   * @memberof DiskStorage
+   */
+  nextAvailableBlock(blockCount) {
+    for (const availableBlock of this.diskTree.availableBlocks) {
+      const [blockIndex, blockSize] = availableBlock.split(":").map(x => parseInt(x));
+
+      if (blockCount <= blockSize) {
+        return blockIndex;
+      }
+    }
+  }
+
+  /**
+   * Update availableBlock.
+   *
+   * @param {*} blockIndex
+   * @param {*} blockCount
+   * @memberof DiskStorage
+   */
+  updateAvailableBlock(blockIndex, blockCount) {
+    const availableBlockIndex = this.diskTree
+      .availableBlocks
+      .findIndex(x => x.match(new RegExp(`^${blockIndex}:`, 'g')));
+
+    const [availableBlockIndex, availableBlockCount] = this.diskTree.availableBlocks[availableBlockIndex]
+      .split(':')
+      .map(x => parseInt(x));
   }
 
   /**

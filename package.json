@@ -1,5 +1,5 @@
 {
-  "name": "os-fei",
+  "name": "skynarfs",
   "version": "1.0.0",
   "description": "University project which focuses on understanding operational systems filesystem.",
   "main": "index.js",
@@ -24,7 +24,5 @@
     "vorpal": "^1.12.0",
     "vorpal-repl": "^1.1.8"
   },
-  "bin": {
-    "skynarfs": "src/index.js"
-  }
+  "bin": "src/index.js"
 }
