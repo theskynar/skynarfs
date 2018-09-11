@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/theskynar/skynarfs#readme",
   "dependencies": {
+    "colors": "^1.3.2",
     "fs-extra": "^7.0.0",
     "joi": "^13.6.0",
     "lodash": "^4.17.10",
