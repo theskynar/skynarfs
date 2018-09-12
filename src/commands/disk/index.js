@@ -37,7 +37,7 @@ class DiskCmd {
       await operations.createDisk(args);
       await operations.persistNewDisk(bytes, result.value);
 
-      this.storage.currentDisk = new DiskStorage(args.name);
+      this.storage.currentDisk = new DiskStorage(args.name, args.blocks, args.blocksize);
       this.storage.currentDisk.toBinary();
 
       console.info(
@@ -64,6 +64,9 @@ class DiskCmd {
       }
 
       await operations.formatDisk(disk);
+      this.storage.currentDisk = new DiskStorage(disk.name, disk.blocks, disk.blocksize);
+      this.storage.currentDisk.toBinary();
+
       console.info(colors['green'](`\n[DISK] Virtual disk ${args.name} was formatted\n`));
       cb();
     } catch (err) {

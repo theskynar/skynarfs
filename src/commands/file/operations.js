@@ -23,17 +23,30 @@ async function fileStats(file) {
 }
 
 
-async function persistFile(file, stats, diskInfo) {
-  const fileFD = fs.open(file, 'r');
-  const diskFD = fs.open(`tmp/disks/${diskInfo.name}/disk`);
+async function persistFile(file, disk, startBlk) {
+  const diskFD = await fs.open(`tmp/disks/${disk.name}/disk`, 'r+');
 
-  for (let i = 0; i < stats.blocks; i++) {
-    const { buffer } = await fs.read(fileFD, Buffer.alloc(stats.blksize), 0, stats.blksize, i * stats.blksize);
-    console.log('>>>>', buffer.toString(), buffer.toString(2));
+  const data = await fs.readFile(file, 'utf-8');
+  const binary = textToBin(data);
+  const buffer = Buffer.from(binary);
+
+  const endBlk = Math.ceil(buffer.byteLength / disk.blocksize);
+  const offset = buffer.byteLength - disk.blocksize > 0 ? disk.blocksize : buffer.byteLength;
+
+  for (let i = startBlk; i <= endBlk; i++) {
+    await fs.write(diskFD, buffer, 0, offset, startBlk - 1);
   }
 }
 
-function parseToBin() { }
+function textToBin(text) {
+  const length = text.length,
+    output = [];
+  for (var i = 0; i < length; i++) {
+    var bin = text[i].charCodeAt().toString(2);
+    output.push(Array(8 - bin.length + 1).join('0') + bin);
+  }
+  return output.join('');
+}
 
 module.exports = {
   fileStats,
