@@ -94,7 +94,7 @@ class DiskCmd {
       }
       cb();
     } catch (err) {
-      cb(colors['red'](`\nFailed to format disk ${err}\n`));
+      cb(colors['red'](`\nFailed to read disk ${err}\n`));
     }
   }
 
