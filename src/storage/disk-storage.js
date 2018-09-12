@@ -105,7 +105,6 @@ class DiskStorage {
     }
 
     this.removeAvailableBlock(blockIndex, blockCount);
-    console.log(this.diskTree.availableBlocks);
 
     const file = {
       name,
@@ -133,12 +132,13 @@ class DiskStorage {
     const item = this.currentNode.childrens[index];
 
     if (item.type === 'file') {
+      console.log('oi');
       this.addAvailableBlock(item.blockIndex, item.blockCount);
     }
 
     if (index === -1) {
       return false;
-    } else if (item.childrens.length > 0 && !recursive) {
+    } else if (item.childrens && item.childrens.length > 0 && !recursive) {
       return false;
     }
 
