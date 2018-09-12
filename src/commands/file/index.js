@@ -1,7 +1,7 @@
 'use strict';
 
-// const { createValidation, commonValidation } = require('./schema');
 const operations = require('./operations');
+const colors = require('colors');
 
 class FileCmd {
   /**
@@ -9,7 +9,7 @@ class FileCmd {
    * @param {Vorpal} vorpal 
    */
   constructor(diskCmd, replCmd, storage) {
-    this.diskCMd = diskCmd;
+    this.diskCmd = diskCmd;
     this.replCmd = replCmd;
     this.chalk = diskCmd.chalk;
     this.storage = storage;
@@ -18,7 +18,7 @@ class FileCmd {
   commands() {
     // Navigate to directory
     this.replCmd.command('cd <dirname>', 'DIR')
-      .autocomplete({ data: () => this.storage.currentDisk.availableFolders.map(x => x.name) })
+      .autocomplete({ data: () => this.storage.currentDisk.availableFolders.map((x) => x.name) })
       .action(this.enterDir.bind(this));
 
     // Create directory
@@ -27,19 +27,33 @@ class FileCmd {
     // Remove file or folder
     this.replCmd.command('remove <name>', 'DIR')
       .option('-r, --recursive', 'Remove recursive')
-      .autocomplete({data: () => [
-        ...this.storage.currentDisk.availableFolders.map(x => x.name),
-        ...this.storage.currentDisk.availableFiles.map(x => x.name)
-      ]})
+      .autocomplete({
+        data: () => [
+          ...this.storage.currentDisk.availableFolders.map((x) => x.name),
+          ...this.storage.currentDisk.availableFiles.map((x) => x.name)
+        ]
+      })
       .action(this.remove.bind(this));
 
     // List folders and files
     this.replCmd.command('dir [dirname]', 'DIR')
-      .autocomplete({ data: () => this.storage.currentDisk.availableFolders.map(x => x.name) })  
+      .autocomplete({ data: () => this.storage.currentDisk.availableFolders.map((x) => x.name) })
       .action(this.listFolder.bind(this));
 
     // Create file
     this.replCmd.command('createfile <file>', 'FILE').action(this.createFile.bind(this));
+
+    // Fetch file content
+    this.replCmd.command('type <file>', 'FILE')
+      .autocomplete({
+        data: () => [
+          ...this.storage.currentDisk.availableFiles.map((x) => x.name)
+        ]
+      })
+      .action(this.typeFile.bind(this));
+
+    this.replCmd.command('exit').remove();
+    this.replCmd.command('exit [f]', 'CLI').action(this.exit.bind(this));
   }
 
   async enterDir({ dirname }, cb) {
@@ -77,7 +91,7 @@ class FileCmd {
     try {
       const curDisk = this.storage.currentDisk;
       const originalNavStack = [...curDisk.navigationStack];
-      
+
       if (dirname) {
         const navigationSuccess = curDisk.navigateTo(dirname);
 
@@ -86,8 +100,8 @@ class FileCmd {
         }
       }
 
-      const folders = curDisk.availableFolders.map(x => x.name + '/').join('\n');
-      const files = curDisk.availableFiles.map(x => x.name).join('\n');
+      const folders = curDisk.availableFolders.map((x) => x.name + '/').join('\n');
+      const files = curDisk.availableFiles.map((x) => x.name).join('\n');
 
       if (dirname) {
         curDisk.navigationStack = originalNavStack;
@@ -101,22 +115,67 @@ class FileCmd {
   }
 
   async createFile({ file }, cb) {
-    const filePath = file.split('/');
-    const fileName = filePath[filePath.length - 1];
-    const currDisk = this.storage.currentDisk;
-    const diskInfo = this.storage.mainDisksInfo[currDisk.name];
-    if (!diskInfo) {
-      cb(new Error(`Disk ${currDisk.name} was not found`));
+    try {
+      const filePath = file.split('/');
+      const fileName = filePath[filePath.length - 1];
+      const currDisk = this.storage.currentDisk;
+      const diskInfo = this.storage.mainDisksInfo[currDisk.name];
+      if (!diskInfo) {
+        cb(new Error(`Disk ${currDisk.name} was not found`));
+      }
+
+      const stats = await operations.fileStats(file);
+      const blockCount = Math.ceil(stats.size / diskInfo.blocksize);
+      const blockIndex = currDisk.nextAvailableBlock(blockCount);
+
+      await operations.persistFile(file, diskInfo, blockIndex, blockCount);
+
+      currDisk.insertFile(fileName, filePath, blockIndex, blockCount);
+      cb();
+    } catch (e) {
+      cb(e);
+    }
+  }
+
+  async typeFile({ file }, cb) {
+    try {
+      if (!file) {
+        cb(colors['red'](`\nThe file ${file} does not exist\n`));
+        return;
+      }
+      const diskStorage = this.storage.currentDisk;
+      console.log(diskStorage);
+      const disk = this.storage.mainDisksInfo[diskStorage.name];
+      console.log(disk);
+      if (!disk) {
+        cb(colors['red'](`\nThe disk ${disk.name} does not exist\n`));
+        return;
+      }
+      const fileNode = this.storage.currentDisk.getByName(file);
+
+      if (fileNode.length == 0) {
+        cb(colors['red'](`\nThe file ${file} was not persist properly or it is corrupted\n`));
+        return;
+      }
+
+      const hasContent = await operations.typeFile(disk, fileNode[0].blockIndex, fileNode[0].blockCount);
+      if (!hasContent) {
+        console.info(colors['green'](`\n[DISK] FILE ${file} HAS NO CONTENT\n`));
+      }
+      cb();
+    } catch (err) {
+      cb(colors['red'](`\nFailed to type file ${err.message}\n${err.stack}`));
+    }
+  }
+
+  exit(args, cb) {
+    if (args.options.f) {
+      cb();
+      process.kill(process.pid, 'SIGINT');
+      return;
     }
 
-    const stats = await operations.fileStats(file);
-    const blockCount = Math.ceil(stats.size / diskInfo.blocksize);
-    const blockIndex = currDisk.nextAvailableBlock(blockCount);
-
-    await operations.persistFile(file, diskInfo, blockIndex, blockCount);
-
-    currDisk.insertFile(fileName, blockIndex, blockCount);
-    cb();
+    this.diskCmd.delimiter('$skynarfs ').show();
   }
 }
 

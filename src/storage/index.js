@@ -64,7 +64,7 @@ class Storage extends EventEmitter {
       const fd = await fs.open('tmp/main', 'r');
       for (let i = 0; i <= 10; i++) {
         const read = await fs.read(fd, Buffer.alloc(128), 0, 128, i * 128);
-        const disk = { name: '', blocksize: '', blocks: '' };
+        const disk = { name: '', blocksize: '', blocks: '', available: 0, used: 0 };
         let blockAval = 1;
         for (let j = 0; j < 20; j++) {
           if (read.buffer[j] != 0) {

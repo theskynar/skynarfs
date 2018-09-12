@@ -85,48 +85,57 @@ async function typeDisk(opts, color) {
   const fd = await fs.open(`${path}/disk`, 'r');
   let hasContent = false;
 
-  let str = '';
   const byBlock = {};
 
   for (let i = 0; i < opts.blocks; i++) {
     const read = await fs.read(fd, Buffer.alloc(opts.blocksize), 0, opts.blocksize, i * opts.blocksize);
-    const buffStr = read.buffer.toString();
-    byBlock[i] = {};
-    byBlock[i].hex = 'HEX => ';
-    byBlock[i].dec = 'DEC => ';
-    byBlock[i].bin = 'BIN => ';
+    const stringBuffer = read.buffer.toString();
+    byBlock[i] = {
+      hex: 'HEX => ',
+      bin: 'BIN => ',
+      dec: 'DEC => ',
+      empty: true
+    };
 
-    for (let j = 0; j < opts.blocksize * 8; j++) {
-      if (buffStr[j] == '1' || buffStr[j] == '0') {
-        str += buffStr[j];
+    for (let j = 0; j < opts.blocksize; j++) {
+      if (stringBuffer[j] != '\0') {
+        const char = stringBuffer[j];
+        const charCode = stringBuffer.charCodeAt(j);
         hasContent = true;
-        if (str.length == 8) {
-          const convs = {
-            hex: parseInt(str, 2).toString(16).toUpperCase(),
-            bin: str,
-            dec: String.fromCharCode(parseInt(str, 2))
-          };
-          byBlock[i].hex += `${convs.hex || '?'}\t`;
-          byBlock[i].dec += `${convs.dec == '\n' ? '\\n' : convs.dec}\t`;
-
-          str = '';
-        }
+        const convs = {
+          hex: charCode.toString(16).toUpperCase(),
+          bin: textToBin(char),
+          dec: char
+        };
+        byBlock[i].hex += `${convs.hex || '?'}\t`;
+        byBlock[i].dec += `${convs.dec == '\n' ? '\\n' : convs.dec}\t`;
+        byBlock[i].bin += `${convs.bin} `;
+        byBlock[i].empty = false;
       }
     }
   }
 
-  for (const k of Object.keys(byBlock)) {
-    const { hex, dec } = byBlock[k];
+  for (const k in byBlock) {
+    const { hex, dec, empty } = byBlock[k];
+    if (empty) continue;
     console.log(`\nBLOCO: ${parseInt(k) + 1}\n`);
     console.log(hex);
     console.log(dec);
-    if (k == 10) {
-      console.log(opts.blocksize);
-      return hasContent;
-    }
+    //console.log(bin);
   }
+  console.log();
 
   return hasContent;
+}
+
+function textToBin(text) {
+  const length = text.length,
+    output = [];
+  for (var i = 0; i < length; i++) {
+    var bin = text[i].charCodeAt().toString(2);
+    output.push(Array(8 - bin.length + 1).join('0') + bin);
+  }
+  return output.join('');
 }
 
 module.exports = {

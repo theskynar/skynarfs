@@ -119,6 +119,16 @@ class DiskStorage {
     return true;
   }
 
+
+  /**
+   * Get name of a entity
+   * @returns
+   * @memberof DiskStorage
+   */
+  getByName(name) {
+    return this.currentNode.childrens.filter((val) => val.name == name);
+  }
+
   /**
    * Remove file or folder in the current node.
    *
@@ -172,7 +182,7 @@ class DiskStorage {
   navigateTo(path) {
     const folders = path.split('/');
     const originalNavStack = [...this.navigationStack];
-    
+
     for (const folderName of folders) {
       if (folderName.trim() === '..') {
         this.navigateBack();
