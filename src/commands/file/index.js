@@ -1,8 +1,5 @@
 'use strict';
 
-const repl = require('vorpal-repl');
-const util = require('util');
-
 // const { createValidation, commonValidation } = require('./schema');
 const operations = require('./operations');
 
@@ -66,7 +63,7 @@ class FileCmd {
     }
   }
 
-  async remove({name, options}, cb) {
+  async remove({ name, options }, cb) {
     const success = this.storage.currentDisk.remove(name, options.recursive);
 
     if (success) {
@@ -104,24 +101,22 @@ class FileCmd {
   }
 
   async createFile({ file }, cb) {
+    const filePath = file.split('/');
+    const fileName = filePath[filePath.length - 1];
     const currDisk = this.storage.currentDisk;
-    console.log(this.storage.mainDisksInfo, currDisk.name);
     const diskInfo = this.storage.mainDisksInfo[currDisk.name];
     if (!diskInfo) {
       cb(new Error(`Disk ${currDisk.name} was not found`));
     }
 
     const stats = await operations.fileStats(file);
-    const blockCount = Math.ceil(stats.size / diskInfo.blocks);
+    const blockCount = Math.ceil(stats.size / diskInfo.blocksize);
     const blockIndex = currDisk.nextAvailableBlock(blockCount);
 
-    await operations.persistFile(file, stats, diskInfo);
+    await operations.persistFile(file, diskInfo, blockIndex, blockCount);
+
+    currDisk.insertFile(fileName, blockIndex, blockCount);
     cb();
-    // if (success) {
-    //   cb();
-    // } else {
-    //   cb(`Directory '${file}' already exists.`);
-    // }
   }
 }
 

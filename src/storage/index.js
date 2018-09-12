@@ -89,6 +89,8 @@ class Storage extends EventEmitter {
           this.mainDisksInfo[disk.name] = disk;
         }
       }
+
+      await fs.close(fd);
     } catch (err) {
       console.error('[MAIN] Failed to synchronize disks information', err);
     }

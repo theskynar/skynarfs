@@ -84,16 +84,47 @@ async function typeDisk(opts, color) {
 
   const fd = await fs.open(`${path}/disk`, 'r');
   let hasContent = false;
+
+  let str = '';
+  const byBlock = {};
+
   for (let i = 0; i < opts.blocks; i++) {
     const read = await fs.read(fd, Buffer.alloc(opts.blocksize), 0, opts.blocksize, i * opts.blocksize);
-    for (let j = 0; j < opts.blocksize; j++) {
-      if (read.buffer[j] != 0) {
+    const buffStr = read.buffer.toString();
+    byBlock[i] = {};
+    byBlock[i].hex = 'HEX => ';
+    byBlock[i].dec = 'DEC => ';
+    byBlock[i].bin = 'BIN => ';
+
+    for (let j = 0; j < opts.blocksize * 8; j++) {
+      if (buffStr[j] == '1' || buffStr[j] == '0') {
+        str += buffStr[j];
         hasContent = true;
-        console.log(color(`Block ${i + 1} - Position ${j} - Code ${read.buffer[j].toString(2)} - Content ${String.fromCharCode(read.buffer[j])}`));
+        if (str.length == 8) {
+          const convs = {
+            hex: parseInt(str, 2).toString(16).toUpperCase(),
+            bin: str,
+            dec: String.fromCharCode(parseInt(str, 2))
+          };
+          byBlock[i].hex += `${convs.hex || '?'}\t`;
+          byBlock[i].dec += `${convs.dec == '\n' ? '\\n' : convs.dec}\t`;
+
+          str = '';
+        }
       }
     }
   }
-  console.log();
+
+  for (const k of Object.keys(byBlock)) {
+    const { hex, dec } = byBlock[k];
+    console.log(`\nBLOCO: ${parseInt(k) + 1}\n`);
+    console.log(hex);
+    console.log(dec);
+    if (k == 10) {
+      console.log(opts.blocksize);
+      return hasContent;
+    }
+  }
 
   return hasContent;
 }
