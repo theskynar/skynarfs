@@ -19,10 +19,29 @@ class FileCmd {
   }
 
   commands() {
-    this.replCmd.command('cd <dirname>', 'DIR').action(this.enterDir.bind(this));
-    this.replCmd.command('mkdir <dirname>', 'DIR').action(this.createDir.bind(this));
-    this.replCmd.command('rm <name>', 'DIR').option('-r, --recursive', 'Remove recursive').action(this.remove.bind(this));
-    this.replCmd.command('ls', 'DIr').action(this.listFolder.bind(this));
+    // Navigate to directory
+    this.replCmd.command('cd <dirname>', 'DIR')
+      .autocomplete({ data: () => this.storage.currentDisk.availableFolders.map(x => x.name) })
+      .action(this.enterDir.bind(this));
+
+    // Create directory
+    this.replCmd.command('createdir <dirname>', 'DIR').action(this.createDir.bind(this));
+
+    // Remove file or folder
+    this.replCmd.command('remove <name>', 'DIR')
+      .option('-r, --recursive', 'Remove recursive')
+      .autocomplete({data: () => [
+        ...this.storage.currentDisk.availableFolders.map(x => x.name),
+        ...this.storage.currentDisk.availableFiles.map(x => x.name)
+      ]})
+      .action(this.remove.bind(this));
+
+    // List folders and files
+    this.replCmd.command('dir [dirname]', 'DIR')
+      .autocomplete({ data: () => this.storage.currentDisk.availableFolders.map(x => x.name) })  
+      .action(this.listFolder.bind(this));
+
+    // Create file
     this.replCmd.command('createfile <file>', 'FILE').action(this.createFile.bind(this));
   }
 
@@ -57,10 +76,25 @@ class FileCmd {
     }
   }
 
-  async listFolder(args, cb) {
+  async listFolder({ dirname }, cb) {
     try {
-      const folders = this.storage.currentDisk.availableFolders.map(x => x.name + '/').join('\n');
-      const files = this.storage.currentDisk.availableFiles.map(x => x.name).join('\n');
+      const curDisk = this.storage.currentDisk;
+      const originalNavStack = [...curDisk.navigationStack];
+      
+      if (dirname) {
+        const navigationSuccess = curDisk.navigateTo(dirname);
+
+        if (!navigationSuccess) {
+          throw new Error(`Cannot such directory '${dirname}'`);
+        }
+      }
+
+      const folders = curDisk.availableFolders.map(x => x.name + '/').join('\n');
+      const files = curDisk.availableFiles.map(x => x.name).join('\n');
+
+      if (dirname) {
+        curDisk.navigationStack = originalNavStack;
+      }
 
       console.log([folders, files].join('\n'));
       cb();

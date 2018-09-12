@@ -12,7 +12,7 @@ class DiskStorage {
     this.name = name;
     this.blocks = blocks;
     this.blockSize = blockSize;
-    this.diskTree = { name: '~', availableBlocks: [`1:${blocks}`], childrens: [] };
+    this.diskTree = { name: '~', availableBlocks: [`0:${blocks}`], childrens: [] };
     this.navigationStack = [];
   }
 
@@ -108,6 +108,7 @@ class DiskStorage {
 
     const file = {
       name,
+      type: 'file',
       blockIndex,
       blockCount,
       createdAt: (new Date()).getTime()
@@ -169,6 +170,7 @@ class DiskStorage {
    */
   navigateTo(path) {
     const folders = path.split('/');
+    const originalNavStack = [...this.navigationStack];
     
     for (const folderName of folders) {
       if (folderName.trim() === '..') {
@@ -179,6 +181,7 @@ class DiskStorage {
       const nextNode = this.availableFolders.find(x => x.name === folderName);
   
       if (!nextNode) {
+        this.navigationStack = originalNavStack;
         return false;
       }
       
