@@ -238,7 +238,6 @@ class DiskStorage {
    * @memberof DiskStorage
    */
   removeAvailableBlock(blockIndex, blockCount) {
-    console.log(blockCount);
     const currentBlockIndex = this.diskTree
       .availableBlocks
       .findIndex(x => x.match(new RegExp(`^${blockIndex}:`, 'g')));

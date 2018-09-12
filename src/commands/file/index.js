@@ -130,7 +130,7 @@ class FileCmd {
 
       await operations.persistFile(file, diskInfo, blockIndex, blockCount);
 
-      currDisk.insertFile(fileName, filePath, blockIndex, blockCount);
+      currDisk.insertFile(fileName, blockIndex, blockCount);
       cb();
     } catch (e) {
       cb(e);
