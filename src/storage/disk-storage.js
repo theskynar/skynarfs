@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 
 /**
  * Helper class for control all disk address.
@@ -146,14 +147,14 @@ class DiskStorage {
     }
 
     if (index === -1) {
-      return false;
+      return null;
     } else if (item.childrens && item.childrens.length > 0 && !recursive) {
-      return false;
+      return null;
     }
 
     this.currentNode.childrens.splice(index, 1);
     this.toBinary();
-    return true;
+    return item;
   }
 
   /**
@@ -314,7 +315,8 @@ class DiskStorage {
    */
   fromBinary() {
     try {
-      const file = fs.readFileSync(`tmp/disks/${this.name}/address`, { encoding: 'utf-8' });
+      const filePath = path.join(__dirname, `../../tmp/disks/${this.name}/address`);
+      const file = fs.readFileSync(filePath, { encoding: 'utf-8' });
       this.diskTree = JSON.parse(file);
     } catch (e) {
       console.error('Error on convert binary file to disk', e);
@@ -329,7 +331,8 @@ class DiskStorage {
   toBinary() {
     try {
       const text = JSON.stringify(this.diskTree);
-      fs.writeFileSync(`tmp/disks/${this.name}/address`, text);
+      const filePath = path.join(__dirname, `../../tmp/disks/${this.name}/address`);
+      fs.writeFileSync(filePath, text);
     } catch (e) {
       console.error('Error on convert disk to Binary File', e);
     }

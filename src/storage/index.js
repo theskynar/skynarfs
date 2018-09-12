@@ -2,6 +2,7 @@
 
 const EventEmitter = require('events');
 const fs = require('fs-extra');
+const path = require('path');
 
 /**
  * @class Storage
@@ -21,11 +22,13 @@ class Storage extends EventEmitter {
   async init() {
     // Initialize main disk files
     try {
-      fs.mkdirpSync('tmp/disks');
-      const exists = fs.existsSync('tmp/main');
+      const dirPath = path.join(__dirname, '../../tmp/disks');
+      const mainPath = path.join(__dirname, '../../tmp/main');
+      fs.mkdirpSync(dirPath);
+      const exists = fs.existsSync(mainPath);
       if (!exists) {
-        const buffer = new Buffer(1000 * 128);
-        fs.writeFileSync('tmp/main', buffer, { encoding: 'binary' });
+        const buffer = Buffer.alloc(1000 * 128);
+        fs.writeFileSync(mainPath, buffer, { encoding: 'binary' });
       }
 
       await this.synchronizeDisksInfo();
@@ -35,7 +38,6 @@ class Storage extends EventEmitter {
 
     this.intervalId = setInterval(async () => {
       await this.synchronizeDisksInfo();
-      //console.log('DISKS:\n', this.mainDisksInfo);
     }, 5000);
   }
 
@@ -61,7 +63,8 @@ class Storage extends EventEmitter {
    */
   async synchronizeDisksInfo() {
     try {
-      const fd = await fs.open('tmp/main', 'r');
+      const mainPath = path.join(__dirname, '../../tmp/main');
+      const fd = await fs.open(mainPath, 'r');
       for (let i = 0; i <= 10; i++) {
         const read = await fs.read(fd, Buffer.alloc(128), 0, 128, i * 128);
         const disk = { name: '', blocksize: '', blocks: '', available: 0, used: 0 };

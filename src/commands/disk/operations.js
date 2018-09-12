@@ -1,13 +1,15 @@
 'use strict';
 
 const fs = require('fs-extra');
+const path = require('path');
 
 /**
  * Persist every created and manipulated disk on the filesystem
  * @param {DiskOptions} opts { name, blocksize, blocks }
  */
 async function persistNewDisk(block, opts) {
-  const fd = await fs.open('tmp/main', 'r+');
+  const filePath = path.join(__dirname, '../../../tmp/main')
+  const fd = await fs.open(filePath, 'r+');
 
   const name = Buffer.alloc(20, 0, 'binary');
   name.write(opts.name, 0, 'binary');
@@ -35,38 +37,37 @@ async function persistNewDisk(block, opts) {
  * @param {DiskOptions} opts { name, blocksize, blocks }
  */
 async function createDisk(opts) {
-  const path = `tmp/disks/${opts.name}`;
+  const filePath = path.join(__dirname, `../../../tmp/disks/${opts.name}`);
   const size = opts.blocksize * opts.blocks;
-  const buffer = new Buffer(size);
-  const exists = await fs.exists(path);
+  const buffer = Buffer.alloc(size);
+  const exists = await fs.exists(filePath);
   if (exists) {
     throw new Error(`Virtual Disk with name ${opts.name} already exists`);
   }
 
   // Create disk dir
-  await fs.mkdirp(path);
+  await fs.mkdirp(filePath);
 
   // Create disk files
   await Promise.all([
-    fs.writeFile(`${path}/disk`, buffer, { encoding: 'binary' }),
-    fs.writeFile(`${path}/address`, { encoding: 'binary' })
+    fs.writeFile(`${filePath}/disk`, buffer, { encoding: 'binary' }),
+    fs.writeFile(`${filePath}/address`, { encoding: 'binary' })
   ]);
 }
 
-
 async function formatDisk(opts) {
-  const path = `tmp/disks/${opts.name}`;
+  const filePath = path.join(__dirname, `../../../tmp/disks/${opts.name}`);
   const size = parseInt(opts.blocksize) * parseInt(opts.blocks);
-  const buffer = new Buffer(size);
-  const exists = await fs.exists(path);
+  const buffer = Buffer.alloc(size);
+  const exists = await fs.exists(filePath);
   if (!exists) {
     throw new Error(`Virtual Disk with name ${opts.name} could not be found`);
   }
 
   // Create disk files
   await Promise.all([
-    fs.writeFile(`${path}/disk`, buffer, { encoding: 'binary' }),
-    fs.writeFile(`${path}/address`, { encoding: 'binary' })
+    fs.writeFile(`${filePath}/disk`, buffer, { encoding: 'binary' }),
+    fs.writeFile(`${filePath}/address`, { encoding: 'binary' })
   ]);
 }
 
@@ -74,15 +75,15 @@ async function typeDisk(opts, color) {
   opts.blocksize = parseInt(opts.blocksize);
   opts.blocks = parseInt(opts.blocks);
 
-  const path = `tmp/disks/${opts.name}`;
-  const exists = await fs.exists(path);
+  const filePath = path.join(__dirname, `../../../tmp/disks/${opts.name}`);
+  const exists = await fs.exists(filePath);
   if (!exists) {
     throw new Error(`Virtual Disk with name ${opts.name} could not be found`);
   }
 
   console.log(color(`\nReading the virtual disk ${opts.name}...\n`));
 
-  const fd = await fs.open(`${path}/disk`, 'r');
+  const fd = await fs.open(`${filePath}/disk`, 'r');
   let hasContent = false;
 
   const byBlock = {};

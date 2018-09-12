@@ -52,8 +52,7 @@ class FileCmd {
       })
       .action(this.typeFile.bind(this));
 
-    this.replCmd.command('exit').remove();
-    this.replCmd.command('exit [f]', 'CLI').action(this.exit.bind(this));
+    this.replCmd.command('exitdisk', 'CLI').action(this.exit.bind(this));
   }
 
   async enterDir({ dirname }, cb) {
@@ -78,9 +77,13 @@ class FileCmd {
   }
 
   async remove({ name, options }, cb) {
-    const success = this.storage.currentDisk.remove(name, options.recursive);
+    const itemRemoved = this.storage.currentDisk.remove(name, options.recursive);
 
-    if (success) {
+    if (itemRemoved) {
+      const currDisk = this.storage.currentDisk;
+      const diskInfo = this.storage.mainDisksInfo[currDisk.name];
+      operations.removeFile(diskInfo, itemRemoved.blockIndex, itemRemoved.blockCount);
+
       cb();
     } else {
       cb(`Cannot remove file or directory '${name}'. Try to use --recursive.`);
@@ -107,7 +110,7 @@ class FileCmd {
         curDisk.navigationStack = originalNavStack;
       }
 
-      console.log([folders, files].join('\n'));
+      console.log([folders, files].filter(x => !!x).join('\n'));
       cb();
     } catch (e) {
       cb(e);
@@ -144,9 +147,7 @@ class FileCmd {
         return;
       }
       const diskStorage = this.storage.currentDisk;
-      console.log(diskStorage);
       const disk = this.storage.mainDisksInfo[diskStorage.name];
-      console.log(disk);
       if (!disk) {
         cb(colors['red'](`\nThe disk ${disk.name} does not exist\n`));
         return;

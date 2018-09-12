@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('fs-extra');
-
+const path = require('path');
 
 /**
  * Fetch file content
@@ -22,9 +22,16 @@ async function fileStats(file) {
   return stats;
 }
 
+async function removeFile(disk, blockIndex, blockCount) {
+  const filePath = path.join(__dirname, `../../../tmp/disks/${disk.name}/disk`)
+  const diskFD = await fs.open(filePath, 'r+');
+
+  await fs.write(diskFD, Buffer.alloc(blockCount * disk.blocksize), 0, blockCount * disk.blocksize, blockIndex * disk.blocksize);
+}
 
 async function persistFile(file, disk, startBlock, blockCount) {
-  const diskFD = await fs.open(`tmp/disks/${disk.name}/disk`, 'r+');
+  const filePath = path.join(__dirname, `../../../tmp/disks/${disk.name}/disk`)
+  const diskFD = await fs.open(filePath, 'r+');
 
   const data = await fs.readFile(file, 'utf8');
   const buffer = Buffer.from(data, 'ascii');
@@ -41,15 +48,14 @@ async function persistFile(file, disk, startBlock, blockCount) {
 
 async function typeFile({ blocksize, blocks, name }, blockIndex, blockCount) {
   blocksize = parseInt(blocksize);
-  console.log(blockCount, blockIndex, name);
-  const path = `tmp/disks/${name}/disk`;
-  const exists = await fs.exists(path);
+  const filePath = path.join(__dirname, `../../../tmp/disks/${name}/disk`);
+  const exists = await fs.exists(filePath);
   if (!exists) {
     throw new Error(`Virtual Disk ${name} could not be found`);
   }
 
   console.log(`\nReading the file disk, looking for blocks [${blockIndex}:${blockCount + blockIndex}]...\n`);
-  const fd = await fs.open(path, 'r');
+  const fd = await fs.open(filePath, 'r');
 
   let hasContent = false;
   const read = await fs.read(fd, Buffer.alloc(blocksize), 0, blocksize, blockIndex * blocksize);
@@ -99,5 +105,6 @@ function textToBin(text) {
 module.exports = {
   fileStats,
   persistFile,
-  typeFile
+  typeFile,
+  removeFile
 };
