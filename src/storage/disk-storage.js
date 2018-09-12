@@ -132,7 +132,6 @@ class DiskStorage {
     const item = this.currentNode.childrens[index];
 
     if (item.type === 'file') {
-      console.log('oi');
       this.addAvailableBlock(item.blockIndex, item.blockCount);
     }
 
