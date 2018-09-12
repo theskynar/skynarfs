@@ -121,6 +121,7 @@ async function typeDisk(opts, color) {
     console.log(hex);
     console.log(dec);
     if (k == 10) {
+      console.log(opts.blocksize);
       return hasContent;
     }
   }

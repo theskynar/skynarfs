@@ -19,6 +19,8 @@ async function fileStats(file) {
     throw new Error(`The ${file} is a directory`);
   }
 
+  console.log(stats);
+
   return stats;
 }
 
@@ -26,9 +28,9 @@ async function fileStats(file) {
 async function persistFile(file, disk, startBlock, blockCount) {
   const diskFD = await fs.open(`tmp/disks/${disk.name}/disk`, 'r+');
 
-  const data = await fs.readFile(file, 'utf-8');
+  const data = await fs.readFile(file, 'utf8');
   const binary = textToBin(data);
-  const buffer = Buffer.from(binary);
+  const buffer = Buffer.from(binary, 'binary');
 
   const binUsage = disk.blocksize * blockCount;
 

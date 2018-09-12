@@ -76,7 +76,6 @@ class FileCmd {
     }
 
     const stats = await operations.fileStats(file);
-    console.log(stats.size);
     const blockCount = Math.ceil(stats.size / diskInfo.blocksize);
     const blockIndex = currDisk.nextAvailableBlock(blockCount);
 
