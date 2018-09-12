@@ -96,7 +96,7 @@ async function typeDisk(opts, color) {
     byBlock[i].dec = 'DEC => ';
     byBlock[i].bin = 'BIN => ';
 
-    for (let j = 0; j < opts.blocksize; j++) {
+    for (let j = 0; j < opts.blocksize * 8; j++) {
       if (buffStr[j] == '1' || buffStr[j] == '0') {
         str += buffStr[j];
         hasContent = true;
@@ -110,10 +110,7 @@ async function typeDisk(opts, color) {
           byBlock[i].dec += `${convs.dec == '\n' ? '\\n' : convs.dec}\t`;
 
           str = '';
-          console.log(convs.dec);
         }
-      } else {
-        console.log('nao é poha alguma');
       }
     }
   }
