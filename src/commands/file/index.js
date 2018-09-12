@@ -56,8 +56,8 @@ class FileCmd {
 
   async listFolder(args, cb) {
     try {
-      const folders = this.storage.currentDisk.availableFolders.map(x => x.name + '/').join('\n');
-      const files = this.storage.currentDisk.availableFiles.map(x => x.name).join('\n');
+      const folders = this.storage.currentDisk.availableFolders.map((x) => x.name + '/').join('\n');
+      const files = this.storage.currentDisk.availableFiles.map((x) => x.name).join('\n');
 
       console.log([folders, files].join('\n'));
       cb();
@@ -67,6 +67,8 @@ class FileCmd {
   }
 
   async createFile({ file }, cb) {
+    const filePath = file.split('/');
+    const fileName = filePath[filePath.length - 1];
     const currDisk = this.storage.currentDisk;
     const diskInfo = this.storage.mainDisksInfo[currDisk.name];
     if (!diskInfo) {
@@ -74,10 +76,12 @@ class FileCmd {
     }
 
     const stats = await operations.fileStats(file);
-    const blockCount = Math.ceil(stats.size / diskInfo.blocks);
+    const blockCount = Math.ceil(stats.size / diskInfo.blocksize);
     const blockIndex = currDisk.nextAvailableBlock(blockCount);
 
-    await operations.persistFile(file, diskInfo, blockIndex);
+    await operations.persistFile(file, diskInfo, blockIndex, blockCount);
+
+    currDisk.insertFile(fileName, blockIndex, blockCount);
     cb();
   }
 }

@@ -23,18 +23,20 @@ async function fileStats(file) {
 }
 
 
-async function persistFile(file, disk, startBlk) {
+async function persistFile(file, disk, startBlock, blockCount) {
   const diskFD = await fs.open(`tmp/disks/${disk.name}/disk`, 'r+');
 
   const data = await fs.readFile(file, 'utf-8');
   const binary = textToBin(data);
   const buffer = Buffer.from(binary);
 
-  const endBlk = Math.ceil(buffer.byteLength / disk.blocksize);
-  const offset = buffer.byteLength - disk.blocksize > 0 ? disk.blocksize : buffer.byteLength;
+  const binUsage = disk.blocksize * blockCount;
 
-  for (let i = startBlk; i <= endBlk; i++) {
-    await fs.write(diskFD, buffer, 0, offset, startBlk - 1);
+  await fs.write(diskFD, buffer, 0, buffer.length, startBlock * disk.blocksize);
+
+  if (binUsage > buffer.length) {
+    const clearBuffer = Buffer.alloc(binUsage - buffer.length);
+    await fs.write(diskFD, clearBuffer, 0, clearBuffer.length, startBlock * disk.blocksize + buffer.length);
   }
 }
 

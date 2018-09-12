@@ -12,7 +12,7 @@ class DiskStorage {
     this.name = name;
     this.blocks = blocks;
     this.blockSize = blockSize;
-    this.diskTree = { name: '~', availableBlocks: [`1:${blocks}`], childrens: [] };
+    this.diskTree = { name: '~', availableBlocks: [`0:${blocks}`], childrens: [] };
     this.navigationStack = [];
   }
 
@@ -105,6 +105,7 @@ class DiskStorage {
     }
 
     this.removeAvailableBlock(blockIndex, blockCount);
+    console.log(this.diskTree.availableBlocks);
 
     const file = {
       name,
@@ -169,19 +170,19 @@ class DiskStorage {
    */
   navigateTo(path) {
     const folders = path.split('/');
-    
+
     for (const folderName of folders) {
       if (folderName.trim() === '..') {
         this.navigateBack();
         continue;
       }
-  
+
       const nextNode = this.availableFolders.find(x => x.name === folderName);
-  
+
       if (!nextNode) {
         return false;
       }
-      
+
       this.navigationStack.push(nextNode);
     }
 
@@ -225,6 +226,7 @@ class DiskStorage {
    * @memberof DiskStorage
    */
   removeAvailableBlock(blockIndex, blockCount) {
+    console.log(blockCount);
     const currentBlockIndex = this.diskTree
       .availableBlocks
       .findIndex(x => x.match(new RegExp(`^${blockIndex}:`, 'g')));
@@ -236,7 +238,7 @@ class DiskStorage {
     if (avBlockCount === blockCount) {
       this.diskTree.availableBlocks.splice(currentBlockIndex, 1);
     } else {
-      this.diskTree.availableBlocks[currentBlockIndex] = `${avBlockIndex}:${avBlockCount - blockCount}`;
+      this.diskTree.availableBlocks[currentBlockIndex] = `${avBlockIndex + blockCount}:${avBlockCount - blockCount}`;
     }
   }
 
@@ -278,16 +280,16 @@ class DiskStorage {
         .availableBlocks[leftSiblingIndex]
         .split(':').map(y => parseInt(y));
 
-      this.diskTree.availableBlocks.splice(leftSiblingIndex, 1); 
-      
+      this.diskTree.availableBlocks.splice(leftSiblingIndex, 1);
+
       this.diskTree.availableBlocks.unshift(`${leftIndex}:${leftCount + blockCount}`);
     } else if (rightSiblingIndex >= 0) {
       const [rightIndex, rightCount] = this.diskTree
         .availableBlocks[rightSiblingIndex]
         .split(':').map(y => parseInt(y));
 
-      this.diskTree.availableBlocks.splice(rightSiblingIndex, 1); 
-      
+      this.diskTree.availableBlocks.splice(rightSiblingIndex, 1);
+
       this.diskTree.availableBlocks.unshift(`${blockIndex}:${blockCount + rightCount}`);
     } else {
       this.diskTree.availableBlocks.unshift(`${blockIndex}:${blockCount}`);
