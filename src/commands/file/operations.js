@@ -29,12 +29,26 @@ async function removeFile(disk, blockIndex, blockCount) {
   await fs.write(diskFD, Buffer.alloc(blockCount * disk.blocksize), 0, blockCount * disk.blocksize, blockIndex * disk.blocksize);
 }
 
-async function persistFile(file, disk, startBlock, blockCount) {
+async function importFile(file, disk, startBlock, blockCount) {
   const filePath = path.join(__dirname, `../../../tmp/disks/${disk.name}/disk`)
   const diskFD = await fs.open(filePath, 'r+');
 
   const data = await fs.readFile(file, 'utf8');
   const buffer = Buffer.from(data, 'ascii');
+
+  const binUsage = disk.blocksize * blockCount;
+
+  await fs.write(diskFD, buffer, 0, buffer.length, startBlock * disk.blocksize);
+
+  if (binUsage > buffer.length) {
+    const clearBuffer = Buffer.alloc(binUsage - buffer.length);
+    await fs.write(diskFD, clearBuffer, 0, clearBuffer.length, startBlock * disk.blocksize + buffer.length);
+  }
+}
+
+async function persistFile(buffer, disk, startBlock, blockCount) {
+  const filePath = path.join(__dirname, `../../../tmp/disks/${disk.name}/disk`)
+  const diskFD = await fs.open(filePath, 'r+');
 
   const binUsage = disk.blocksize * blockCount;
 
@@ -105,6 +119,7 @@ function textToBin(text) {
 module.exports = {
   fileStats,
   persistFile,
+  importFile,
   typeFile,
   removeFile
 };
