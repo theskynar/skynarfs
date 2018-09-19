@@ -13,7 +13,10 @@ class DiskStorage {
     this.name = name;
     this.blocks = blocks;
     this.blockSize = blockSize;
-    this.diskTree = { name: '~', availableBlocks: [`0:${blocks}`], childrens: [] };
+
+    const firstAvailableBlock = Math.ceil(10000 / blockSize);
+
+    this.diskTree = { name: '~', availableBlocks: [`${firstAvailableBlock}:${blocks - firstAvailableBlock}`], childrens: [] };
     this.navigationStack = [];
   }
 
@@ -315,9 +318,52 @@ class DiskStorage {
    */
   fromBinary() {
     try {
-      const filePath = path.join(__dirname, `../../tmp/disks/${this.name}/address`);
-      const file = fs.readFileSync(filePath, { encoding: 'utf-8' });
-      this.diskTree = JSON.parse(file);
+      const filePath = path.join(__dirname, `../../tmp/disks/${this.name}/disk`);
+      const file = fs.readFileSync(filePath, 'utf-8').substr(0, 10000);
+      const tree = {};
+      tree.name = '~';
+      tree.availableBlocks = file.substr(0, 100).replace(/\u0000/g, '').split('|');
+      tree.childrens = file.substr(100, 120).replace(/\u0000/g, '').split('|').map(x => parseInt(x)).filter(x => !!x);
+
+      const informations = []; // All file/folder informations.
+      let finish = false; // If true, stop the process.
+      let index = 220; // Start reading file/folders.
+
+      while (!finish) {
+        const info = {};
+        info.name = file.substr(index, 20).replace(/\u0000/g, '');
+
+        if (!info.name.length) {
+          finish = true;
+        } else {
+          info.type = file.substr(index + 20, 8).replace(/\u0000/g, '');
+          info.createdAt = parseInt(file.substr(index + 28, 14).replace(/\u0000/g, ''));
+
+          if (info.type === 'file') {
+            // IS FILE
+            info.blockIndex = parseInt(file.substr(index + 42, 4).replace(/\u0000/g, ''));
+            info.blockCount = parseInt(file.substr(index + 46, 4).replace(/\u0000/g, ''));
+            index += 50;
+          } else {
+            // IS FOLDER
+            info.childrens = file.substr(index + 42, 120).replace(/\u0000/g, '').split('|').map(x => parseInt(x)).filter(x => !!x);
+            index += 162;
+          }
+
+          informations.push(info);
+        }
+      }
+
+      for (let item of informations) {
+        if (item.childrens) {
+          item.childrens = item.childrens.map(child => informations.find(x => x.createdAt === child));
+        }
+      }
+
+      tree.childrens = tree.childrens.map(child => informations.find(x => x.createdAt === child));
+      this.diskTree = tree;
+
+      console.log(this.diskTree);
     } catch (e) {
       console.error('Error on convert binary file to disk', e);
     }
@@ -330,11 +376,43 @@ class DiskStorage {
    */
   toBinary() {
     try {
-      const text = JSON.stringify(this.diskTree);
-      const filePath = path.join(__dirname, `../../tmp/disks/${this.name}/address`);
-      fs.writeFileSync(filePath, text);
+      let result = "";
+      result += `${this.diskTree.availableBlocks.join('|').padEnd(100, '\0')}`;
+      result += `${this.diskTree.childrens.map(x => x.createdAt.toString().padEnd(14, '\0')).join('|').padEnd(120, '\0')}`;
+
+      const parseChild = (node) => {
+        result += `${node.name.padEnd(20, '\0')}`;
+        result += `${node.type.padEnd(8, '\0')}`;
+        result += `${node.createdAt.toString().padEnd(14, '\0')}`;
+
+        if (node.type === 'file') {
+          // IS FILE
+          result += `${node.blockIndex.toString().padEnd(4, '\0')}`;
+          result += `${node.blockCount.toString().padEnd(4, '\0')}`;
+        } else {
+          // IS FOLDER
+          result += `${node.childrens.map(x => x.createdAt.toString().padEnd(14, '\0')).join('|').padEnd(120, '\0')}`;
+        }
+      };
+
+      this.deepRun(this.diskTree, parseChild, false);
+      result = result.padEnd(10000, '\0');
+
+      const filePath = path.join(__dirname, `../../tmp/disks/${this.name}/disk`);
+      const file = fs.readFileSync(filePath, 'utf-8').replace(/.{10000}/, result);
+      fs.writeFileSync(filePath, file);
     } catch (e) {
       console.error('Error on convert disk to Binary File', e);
+    }
+  }
+
+  deepRun(node, cb, runCB = true) {
+    if (runCB && node) {
+      cb(node);
+    }
+
+    if (node.childrens && node.childrens.length > 0) {
+      for (let item of node.childrens) this.deepRun(item, cb);
     }
   }
 }

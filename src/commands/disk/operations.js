@@ -50,8 +50,7 @@ async function createDisk(opts) {
 
   // Create disk files
   await Promise.all([
-    fs.writeFile(`${filePath}/disk`, buffer, { encoding: 'binary' }),
-    fs.writeFile(`${filePath}/address`, { encoding: 'binary' })
+    fs.writeFile(`${filePath}/disk`, buffer, { encoding: 'binary' })
   ]);
 }
 
@@ -66,8 +65,7 @@ async function formatDisk(opts) {
 
   // Create disk files
   await Promise.all([
-    fs.writeFile(`${filePath}/disk`, buffer, { encoding: 'binary' }),
-    fs.writeFile(`${filePath}/address`, { encoding: 'binary' })
+    fs.writeFile(`${filePath}/disk`, buffer, { encoding: 'binary' })
   ]);
 }
 
