@@ -120,6 +120,7 @@ class DiskCmd {
         const err = `\nFailed to enter disk, 
               try again:\n${util.inspect(result.error.details, false, Infinity)}\n`;
         cb(colors['red'](err));
+        return;
       }
 
       const disk = this.storage.mainDisksInfo[args.name];

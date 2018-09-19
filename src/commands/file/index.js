@@ -2,6 +2,7 @@
 
 const operations = require('./operations');
 const colors = require('colors');
+const readline = require('readline');
 
 class FileCmd {
   /**
@@ -40,7 +41,9 @@ class FileCmd {
       .autocomplete({ data: () => this.storage.currentDisk.availableFolders.map((x) => x.name) })
       .action(this.listFolder.bind(this));
 
-    // Create file
+    // Import file
+    this.replCmd.command('importfile <file>', 'FILE').action(this.importFile.bind(this));
+
     this.replCmd.command('createfile <file>', 'FILE').action(this.createFile.bind(this));
 
     // Fetch file content
@@ -117,7 +120,7 @@ class FileCmd {
     }
   }
 
-  async createFile({ file }, cb) {
+  async importFile({ file }, cb) {
     try {
       const filePath = file.split('/');
       const fileName = filePath[filePath.length - 1];
@@ -131,7 +134,7 @@ class FileCmd {
       const blockCount = Math.ceil(stats.size / diskInfo.blocksize);
       const blockIndex = currDisk.nextAvailableBlock(blockCount);
 
-      await operations.persistFile(file, diskInfo, blockIndex, blockCount);
+      await operations.importFile(file, diskInfo, blockIndex, blockCount);
 
       currDisk.insertFile(fileName, blockIndex, blockCount);
       cb();
@@ -166,6 +169,59 @@ class FileCmd {
       cb();
     } catch (err) {
       cb(colors['red'](`\nFailed to type file ${err.message}\n${err.stack}`));
+    }
+  }
+
+  createFile({ file }, cb) {
+    try {
+      // VALIDAR SIZE FILE
+      if (file.length > 15) {
+        cb(colors.red('File name must have at maximum 15 characters'));
+        return;
+      }
+      const currDisk = this.storage.currentDisk;
+      const diskInfo = this.storage.mainDisksInfo[currDisk.name];
+      if (!diskInfo) {
+        cb(new Error(`Disk ${currDisk.name} was not found`));
+        return;
+      }
+      let str = '';
+
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+
+      // Listen only once nigger!
+      rl.once('SIGTSTP', async () => {
+        try {
+          console.log(colors.yellow('\nGOT Ctrl-Z Signal'));
+          console.log(colors.blue('\nWriting bytes...'));
+          const buffer = Buffer.from(str, 'ascii');
+          const blockCount = Math.ceil(buffer.length / diskInfo.blocksize);
+          const blockIndex = currDisk.nextAvailableBlock(blockCount);
+    
+          await operations.persistFile(buffer, diskInfo, blockIndex, blockCount);
+    
+          currDisk.insertFile(file, blockIndex, blockCount);
+  
+          console.log(colors.green(`\nCreated the file ${file} with content:\n${str}`));
+          cb();
+        } catch (err) {
+          cb(err)
+        }
+      });
+
+      rl.on('line', (line) => {
+        if (str) {
+          str += `\n${line}`
+        } else {
+          str += line
+        }
+      })
+
+    } catch (e) {
+      cb(e);
     }
   }
 
