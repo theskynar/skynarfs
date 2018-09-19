@@ -46,7 +46,7 @@ async function persistFile(file, disk, startBlock, blockCount) {
   }
 }
 
-async function typeFile({ blocksize, blocks, name }, blockIndex, blockCount) {
+async function typeFile({ blocksize, name }, blockIndex, blockCount) {
   blocksize = parseInt(blocksize);
   const filePath = path.join(__dirname, `../../../tmp/disks/${name}/disk`);
   const exists = await fs.exists(filePath);
@@ -58,7 +58,7 @@ async function typeFile({ blocksize, blocks, name }, blockIndex, blockCount) {
   const fd = await fs.open(filePath, 'r');
 
   let hasContent = false;
-  const read = await fs.read(fd, Buffer.alloc(blocksize), 0, blocksize, blockIndex * blocksize);
+  const read = await fs.read(fd, Buffer.alloc(blocksize * blockCount), 0, blocksize * blockCount, blockIndex * blocksize);
   const stringBuffer = read.buffer.toString();
   const typefile = {
     hex: 'HEX => ',
