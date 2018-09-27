@@ -362,8 +362,6 @@ class DiskStorage {
 
       tree.childrens = tree.childrens.map(child => informations.find(x => x.createdAt === child));
       this.diskTree = tree;
-
-      console.log(this.diskTree);
     } catch (e) {
       console.error('Error on convert binary file to disk', e);
     }
