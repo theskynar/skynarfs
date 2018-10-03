@@ -19,11 +19,11 @@ class DiskCmd {
   }
 
   commands() {
-    this.diskMode.command('createdisk <name> <blocksize> <blocks>', 'DISK').action(this.create.bind(this));
-    this.diskMode.command('formatdisk <name>', 'DISK').action(this.format.bind(this));
-    this.diskMode.command('typedisk <name>', 'DISK').action(this.type.bind(this));
-    this.diskMode.command('enterdisk <name>', 'DISK').action(this.enter.bind(this));
-    this.diskMode.command('lsdisk', 'DISK').action(this.list.bind(this));
+    this.diskMode.command('createhd <name> <blocksize> <blocks>', 'DISK').action(this.create.bind(this));
+    this.diskMode.command('formathd <name>', 'DISK').action(this.format.bind(this));
+    this.diskMode.command('typehd <name>', 'DISK').action(this.type.bind(this));
+    this.diskMode.command('enterhd <name>', 'DISK').action(this.enter.bind(this));
+    this.diskMode.command('dirhd', 'DISK').action(this.list.bind(this));
   }
 
   async create(args, cb) {
@@ -40,7 +40,7 @@ class DiskCmd {
       this.storage.currentDisk = new DiskStorage(args.name, args.blocks, args.blocksize);
       this.storage.currentDisk.toBinary();
 
-      console.info(
+      this.diskMode.log(
         colors['green'](`\n[DISK] Virtual disk ${args.name} with size ${args.blocks * args.blocksize} created successfully\n`)
       );
 
@@ -67,7 +67,7 @@ class DiskCmd {
       this.storage.currentDisk = new DiskStorage(disk.name, disk.blocks, disk.blocksize);
       this.storage.currentDisk.toBinary();
 
-      console.info(colors['green'](`\n[DISK] Virtual disk ${args.name} was formatted\n`));
+      this.diskMode.log(colors['green'](`\n[DISK] Virtual disk ${args.name} was formatted\n`));
       cb();
     } catch (err) {
       cb(colors['red'](`\nFailed to format disk ${err}\n`));
@@ -88,9 +88,9 @@ class DiskCmd {
         cb(colors['yellow'](`\nThe disk ${result.value.name} does not exist\n`));
       }
 
-      const hasContent = await operations.typeDisk(disk, colors['green']);
+      const hasContent = await operations.typeDisk(disk, colors['green'], this.diskMode.log.bind(this.diskMode));
       if (!hasContent) {
-        console.info(colors['green'](`\n[DISK] Virtual disk ${args.name} HAS NO CONTENT\n`));
+        this.diskMode.log(colors['green'](`\n[DISK] Virtual disk ${args.name} HAS NO CONTENT\n`));
       }
       cb();
     } catch (err) {
@@ -100,13 +100,13 @@ class DiskCmd {
 
   list(args, cb) {
     try {
-      console.log(colors['green']('\nAvailable disks: '));
+      this.diskMode.log(colors['green']('\nAvailable disks: '));
       const disks = Object.keys(this.storage.mainDisksInfo);
       const data = this.storage.mainDisksInfo;
       for (let i = 0; i < disks.length; i++) {
-        console.log(colors['blue'](`${disks[i]} - ${data[disks[i]].blocks * data[disks[i]].blocksize} bytes`));
+        this.diskMode.log(colors['blue'](`${disks[i]} - ${data[disks[i]].blocks * data[disks[i]].blocksize} bytes`));
       }
-      console.log();
+      this.diskMode.log('\n');
       cb();
     } catch (err) {
       cb(new Error(colors.red(`Listing errors: ${err}`)));
@@ -132,6 +132,7 @@ class DiskCmd {
       this.storage.currentDisk = new DiskStorage(args.name, disk.blocks, disk.blocksize);
       this.storage.currentDisk.fromBinary();
 
+      this.diskMode.hide();
       this.replMode.delimiter(`$skynarfs:${args.name}> `).show();
     } catch (err) {
       cb(new Error(colors.red(`Entering disk errors: ${err}`)));

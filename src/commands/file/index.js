@@ -44,7 +44,7 @@ class FileCmd {
     // Import file
     this.replCmd.command('importfile <file>', 'FILE').action(this.importFile.bind(this));
 
-    this.replCmd.command('createfile <file>', 'FILE').action(this.createFile.bind(this));
+    this.replCmd.command('create <file>', 'FILE').action(this.createFile.bind(this));
 
     // Fetch file content
     this.replCmd.command('type <file>', 'FILE')
@@ -62,6 +62,7 @@ class FileCmd {
     const success = this.storage.currentDisk.navigateTo(dirname);
 
     if (success) {
+      this.diskCmd.hide();
       this.replCmd.delimiter(`$skynarfs:${this.storage.currentDisk.name}:${this.storage.currentDisk.path}> `).show();
       cb();
     } else {
@@ -113,7 +114,7 @@ class FileCmd {
         curDisk.navigationStack = originalNavStack;
       }
 
-      console.log([folders, files].filter(x => !!x).join('\n'));
+      this.replCmd.log([folders, files].filter(x => !!x).join('\n'));
       cb();
     } catch (e) {
       cb(e);
@@ -162,9 +163,9 @@ class FileCmd {
         return;
       }
 
-      const hasContent = await operations.typeFile(disk, fileNode[0].blockIndex, fileNode[0].blockCount);
+      const hasContent = await operations.typeFile(disk, fileNode[0].blockIndex, fileNode[0].blockCount, this.replCmd.log.bind(this.replCmd));
       if (!hasContent) {
-        console.info(colors['green'](`\n[DISK] FILE ${file} HAS NO CONTENT\n`));
+        this.replCmd.log(colors['green'](`\n[DISK] FILE ${file} HAS NO CONTENT\n`));
       }
       cb();
     } catch (err) {
@@ -192,25 +193,27 @@ class FileCmd {
         output: process.stdout
       });
 
-      // Listen only once nigger!
-      rl.once('SIGTSTP', async () => {
+      const finishWriteFile = async () => {
         try {
-          console.log(colors.yellow('\nGOT Ctrl-Z Signal'));
-          console.log(colors.blue('\nWriting bytes...'));
+          this.replCmd.log(colors.yellow('\nGOT Ctrl-Z Signal'));
+          this.replCmd.log(colors.blue('\nWriting bytes...'));
           const buffer = Buffer.from(str, 'ascii');
           const blockCount = Math.ceil(buffer.length / diskInfo.blocksize);
           const blockIndex = currDisk.nextAvailableBlock(blockCount);
     
           await operations.persistFile(buffer, diskInfo, blockIndex, blockCount);
-    
           currDisk.insertFile(file, blockIndex, blockCount);
   
-          console.log(colors.green(`\nCreated the file ${file} with content:\n${str}`));
+          this.replCmd.log(colors.green(`\nCreated the file ${file} with content:\n${str}`));
           cb();
         } catch (err) {
           cb(err)
         }
-      });
+      };
+
+      // Listen only once nigger!
+      rl.once('SIGTSTP', finishWriteFile.bind(this));
+      rl.once('SIGINT', finishWriteFile.bind(this));
 
       rl.on('line', (line) => {
         if (str) {
@@ -232,6 +235,7 @@ class FileCmd {
       return;
     }
 
+    this.replCmd.hide();
     this.diskCmd.delimiter('$skynarfs ').show();
   }
 }

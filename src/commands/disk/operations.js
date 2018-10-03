@@ -69,7 +69,7 @@ async function formatDisk(opts) {
   ]);
 }
 
-async function typeDisk(opts, color) {
+async function typeDisk(opts, color, log) {
   opts.blocksize = parseInt(opts.blocksize);
   opts.blocks = parseInt(opts.blocks);
 
@@ -79,7 +79,7 @@ async function typeDisk(opts, color) {
     throw new Error(`Virtual Disk with name ${opts.name} could not be found`);
   }
 
-  console.log(color(`\nReading the virtual disk ${opts.name}...\n`));
+  log(color(`\nReading the virtual disk ${opts.name}...\n`));
 
   const fd = await fs.open(`${filePath}/disk`, 'r');
   let hasContent = false;
@@ -117,12 +117,11 @@ async function typeDisk(opts, color) {
   for (const k in byBlock) {
     const { hex, dec, empty } = byBlock[k];
     if (empty) continue;
-    console.log(`\nBLOCO: ${parseInt(k) + 1}\n`);
-    console.log(hex);
-    console.log(dec);
-    //console.log(bin);
+    log(`\nBLOCO: ${parseInt(k) + 1}\n`);
+    log(hex);
+    log(dec);
   }
-  console.log();
+  log('\n');
 
   return hasContent;
 }

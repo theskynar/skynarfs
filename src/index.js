@@ -8,10 +8,6 @@ try {
   const storage = new Storage();
   const rootCommand = new RootCmd(storage);
 
-  process.on('SIGINT', () => {
-    storage.stop();
-  });
-
   storage.init().then(() => {
     rootCommand.init();
   }).catch((err) => {

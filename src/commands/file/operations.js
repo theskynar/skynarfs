@@ -60,7 +60,7 @@ async function persistFile(buffer, disk, startBlock, blockCount) {
   }
 }
 
-async function typeFile({ blocksize, name }, blockIndex, blockCount) {
+async function typeFile({ blocksize, name }, blockIndex, blockCount, log) {
   blocksize = parseInt(blocksize);
   const filePath = path.join(__dirname, `../../../tmp/disks/${name}/disk`);
   const exists = await fs.exists(filePath);
@@ -68,7 +68,7 @@ async function typeFile({ blocksize, name }, blockIndex, blockCount) {
     throw new Error(`Virtual Disk ${name} could not be found`);
   }
 
-  console.log(`\nReading the file disk, looking for blocks [${blockIndex}:${blockCount + blockIndex}]...\n`);
+  log(`\nReading the file disk, looking for blocks [${blockIndex}:${blockCount + blockIndex}]...\n`);
   const fd = await fs.open(filePath, 'r');
 
   let hasContent = false;
@@ -98,9 +98,9 @@ async function typeFile({ blocksize, name }, blockIndex, blockCount) {
     }
   }
 
-  console.log(`\n CONTEÚDO ARQUIVO:\n`);
-  console.log(typefile.hex);
-  console.log(typefile.dec);
+  log(`\n CONTEÚDO ARQUIVO:\n`);
+  log(typefile.hex);
+  log(typefile.dec);
 
   return hasContent;
 }
