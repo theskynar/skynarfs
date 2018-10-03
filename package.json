@@ -4,13 +4,13 @@
   "description": "University project which focuses on understanding operational systems filesystem.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "skynarfs"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/theskynar/skynarfs.git"
   },
-  "author": "Skynar",
+  "author": "Matheus Bordin, Enrico Alvarenga",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/theskynar/skynarfs/issues"

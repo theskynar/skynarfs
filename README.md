@@ -2,22 +2,22 @@
 
 ## Documentação
 
-###Sistemas operacionais suportados:
+### Sistemas operacionais suportados:
 
 - Windows
 - Linux
 - Mac
 
-###Pre-requisitos:
+### Pre-requisitos:
 
 - NodeJS instalado (v8.x ou superior)
 
-###Como instalar:
+### Como instalar:
 
 Abrir o terminal e rodar: npm install -g skynarfs
 Fechar e abrir o terminal.
 
-###Como utilizar:
+### Como utilizar:
 
 Em qualquer diretorio rodar: skynarfs
 
