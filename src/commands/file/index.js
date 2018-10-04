@@ -55,7 +55,10 @@ class FileCmd {
       })
       .action(this.typeFile.bind(this));
 
-    this.replCmd.command('exitdisk', 'CLI').action(this.exit.bind(this));
+    // Move file/folder
+    this.replCmd.command('mv <source> <dist>', 'FILE/DIR').action(this.move.bind(this));
+
+    this.replCmd.command('exitdisk', 'CLI')
   }
 
   async enterDir({ dirname }, cb) {
@@ -77,6 +80,15 @@ class FileCmd {
       cb();
     } else {
       cb(`Directory '${dirname}' already exists.`);
+    }
+  }
+
+  async move({ source, dist }, cb) {
+    try {
+      this.storage.currentDisk.move(source, dist);
+      cb();
+    } catch (e) {
+      cb(e);
     }
   }
 
