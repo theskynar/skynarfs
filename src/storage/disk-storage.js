@@ -16,7 +16,11 @@ class DiskStorage {
 
     const firstAvailableBlock = Math.ceil(10000 / blockSize);
 
-    this.diskTree = { name: '~', availableBlocks: [`${firstAvailableBlock}:${blocks - firstAvailableBlock}`], childrens: [] };
+    this.diskTree = {
+      name: '~',
+      availableBlocks: [`${firstAvailableBlock}:${blocks - firstAvailableBlock}`],
+      childrens: []
+    };
     this.navigationStack = [];
   }
 
@@ -123,7 +127,6 @@ class DiskStorage {
     return true;
   }
 
-
   /**
    * Get name of a entity
    * @returns
@@ -131,6 +134,65 @@ class DiskStorage {
    */
   getByName(name) {
     return this.currentNode.childrens.filter((val) => val.name == name);
+  }
+
+  /**
+   * Mode node to another path.
+   *
+   * @param {string} originPath Source path
+   * @param {string} distPath Dist path
+   * @memberof DiskStorage
+   */
+  move(originPath, distPath) {
+    // Save original stack for future.
+    let originalNavStack = [...this.navigationStack];
+    
+    const originPathArray = originPath.split("/");
+    const originNodeName = originPathArray.pop();
+    
+    // If is children of another folder, navigate to folder.
+    if (originPathArray.length > 0) {
+      const navigationSuccess = this.navigateTo(originPathArray.join('/'));
+      
+      // If navigation fail, path is invalid.
+      if (!navigationSuccess) {
+        this.navigationStack = originalNavStack;
+        throw new Error("Source path is invalid");
+      }
+    }
+
+    // Get original node index.
+    const originNodeIndex = this.currentNode.childrens.findIndex((node) => node.name === originNodeName);
+
+    // If not exists, path is invalid.
+    if (originNodeIndex === -1) {
+      this.navigationStack = originalNavStack;
+      throw new Error("Source path is invalid");
+    }
+
+    // If exists, get origin node and origin parent node (used for remove node in future).
+    const originNode = this.currentNode.childrens[originNodeIndex];
+    const originParentNode = this.currentNode;
+
+    // Restore original navigation stack, and navigate to destination folder.
+    this.navigationStack = originalNavStack;
+    originalNavStack = [...this.navigationStack];
+
+    if (distPath !== '.') {
+      const navigationSuccess = this.navigateTo(distPath);
+
+      // If navigation fail, path is invalid.
+      if (!navigationSuccess) {
+        this.navigationStack = originalNavStack;
+        throw new Error("Dist path is invalid");
+      }
+    }
+
+    originParentNode.childrens.splice(originNodeIndex, 1);
+    this.currentNode.childrens.push(originNode);
+
+    // Restore original navigation stack, and navigate to destination folder.
+    this.navigationStack = originalNavStack;
   }
 
   /**
