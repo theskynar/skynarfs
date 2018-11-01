@@ -63,6 +63,8 @@ class Storage extends EventEmitter {
    */
   async synchronizeDisksInfo() {
     try {
+      this.mainDisksInfo = {};
+
       const mainPath = path.join(__dirname, '../../tmp/main');
       const fd = await fs.open(mainPath, 'r');
       for (let i = 0; i <= 10; i++) {

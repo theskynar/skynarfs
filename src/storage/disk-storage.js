@@ -374,6 +374,23 @@ class DiskStorage {
   }
 
   /**
+   * Rename node.
+   *
+   * @param {*} name Node name.
+   * @param {*} newName New node name.
+   * @memberof DiskStorage
+   */
+  renameNode(name, newName) {
+    const node = this.currentNode.childrens.find(x => x.name === name);
+
+    if (!node) {
+      throw new Error(`Cannot find '${name}'`);
+    }
+
+    node.name = newName;
+  }
+
+  /**
    * Load binary file.
    *
    * @memberof DiskStorage

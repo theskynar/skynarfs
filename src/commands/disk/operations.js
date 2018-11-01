@@ -5,6 +5,8 @@ const path = require('path');
 
 /**
  * Persist every created and manipulated disk on the filesystem
+ * 
+ * @param {number} block
  * @param {DiskOptions} opts { name, blocksize, blocks }
  */
 async function persistNewDisk(block, opts) {
@@ -12,7 +14,7 @@ async function persistNewDisk(block, opts) {
   const fd = await fs.open(filePath, 'r+');
 
   const name = Buffer.alloc(20, 0, 'binary');
-  name.write(opts.name, 0, 'binary');
+  name.write(opts.name.replace(/\W/g, ''), 0, 'binary');
 
   const blocks = Buffer.alloc(20, 0, 'binary');
   blocks.write(opts.blocks.toString(), 0);
@@ -20,16 +22,38 @@ async function persistNewDisk(block, opts) {
   const blocksize = Buffer.alloc(20, 0, 'binary');
   blocksize.write(opts.blocksize.toString(), 0);
 
-  let pos = 0;
-  if (block === 1) {
-    pos = 0;
-  } else {
-    pos = block * 128 - 127;
-  }
+  let pos = (block - 1) * 128;
 
   await fs.write(fd, name, 0, name.byteLength, pos);
   await fs.write(fd, blocks, 0, blocks.byteLength, pos + 20);
   await fs.write(fd, blocksize, 0, blocksize.byteLength, pos + 40);
+}
+
+/**
+ * Remove disk from main file.
+ *
+ * @param {*} name Name of disk to remove of main.
+ */
+async function unPersistDisk(name) {
+  const filePath = path.join(__dirname, '../../../tmp/main')
+  let file = fs.readFileSync(filePath, { encoding: 'utf-8' });
+  let index = 0;
+  let diskName = file.substr(index, 20).replace(/\W/g, '');
+
+  while (index < file.length && diskName !== name) {
+    index += 128;
+    diskName = file.substr(index, 20).replace(/\W/g, '');
+  }  
+
+  if (!diskName) {
+    throw new Error(`Cannot find informations of disk with name '${name}'`);
+  }
+
+  const buff = Buffer.from(file, 'utf-8');
+  const tmpBuff = Buffer.alloc(128, 0 , 'binary');
+  buff.write(tmpBuff.toString(), index, tmpBuff.length);
+
+  fs.writeFileSync(filePath, buff.toString(), 'binary');
 }
 
 /**
@@ -41,6 +65,7 @@ async function createDisk(opts) {
   const size = opts.blocksize * opts.blocks;
   const buffer = Buffer.alloc(size);
   const exists = await fs.exists(filePath);
+
   if (exists) {
     throw new Error(`Virtual Disk with name ${opts.name} already exists`);
   }
@@ -52,6 +77,23 @@ async function createDisk(opts) {
   await Promise.all([
     fs.writeFile(`${filePath}/disk`, buffer, { encoding: 'binary' })
   ]);
+}
+
+/**
+ * Remove virtual disk.
+ *
+ * @param {*} name Name of disk to remove.
+ */
+async function removeDisk(name) {
+  const filePath = path.join(__dirname, `../../../tmp/disks/${name}`);
+  const exists = await fs.exists(filePath);
+
+  if (!exists) {
+    throw new Error(`Virtual Disk with name ${name} not exists`);
+  }
+
+  fs.unlinkSync(`${filePath}/disk`);
+  fs.rmdirSync(filePath);
 }
 
 async function formatDisk(opts) {
@@ -138,7 +180,9 @@ function textToBin(text) {
 
 module.exports = {
   createDisk,
+  removeDisk,
   formatDisk,
   typeDisk,
-  persistNewDisk
+  persistNewDisk,
+  unPersistDisk
 };
