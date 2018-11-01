@@ -205,12 +205,17 @@ class FileCmd {
         cb(colors.red('File name must have at maximum 15 characters'));
         return;
       }
+
       const currDisk = this.storage.currentDisk;
       const diskInfo = this.storage.mainDisksInfo[currDisk.name];
+
       if (!diskInfo) {
-        cb(new Error(`Disk ${currDisk.name} was not found`));
+        cb(colors.red(`Disk ${currDisk.name} was not found`));
         return;
       }
+
+      this.diskCmd.hide();
+      this.replCmd.hide();
       let str = '';
 
       const rl = readline.createInterface({
@@ -220,8 +225,9 @@ class FileCmd {
 
       const finishWriteFile = async () => {
         try {
-          this.replCmd.log(colors.yellow('\nGOT Ctrl-Z Signal'));
-          this.replCmd.log(colors.blue('\nWriting bytes...'));
+          rl.close();
+          console.log(colors.yellow('\nGOT Ctrl-Z Signal'));
+          console.log(colors.blue('\nWriting bytes...'));
           const buffer = Buffer.from(str, 'ascii');
           const blockCount = Math.ceil(buffer.length / diskInfo.blocksize);
           const blockIndex = currDisk.nextAvailableBlock(blockCount);
@@ -229,16 +235,17 @@ class FileCmd {
           await operations.persistFile(buffer, diskInfo, blockIndex, blockCount);
           currDisk.insertFile(file, blockIndex, blockCount);
   
+          this.replCmd.show();
           this.replCmd.log(colors.green(`\nCreated the file ${file} with content:\n${str}`));
-          cb();
         } catch (err) {
-          cb(err)
+          console.log(err);
+          this.replCmd.show();
         }
       };
 
       // Listen only once nigger!
-      rl.once('SIGTSTP', finishWriteFile.bind(this));
-      rl.once('SIGINT', finishWriteFile.bind(this));
+      rl.once('SIGTSTP', finishWriteFile);
+      rl.once('SIGINT', finishWriteFile);
 
       rl.on('line', (line) => {
         if (str) {
