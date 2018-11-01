@@ -23,15 +23,62 @@ class DiskCmd {
     this.diskMode.command('formathd <name>', 'DISK').action(this.format.bind(this));
     this.diskMode.command('typehd <name>', 'DISK').action(this.type.bind(this));
     this.diskMode.command('enterhd <name>', 'DISK').action(this.enter.bind(this));
+    this.diskMode.command('statushd <name>', 'DISK').action(this.status.bind(this));
+    this.diskMode.command('removehd <name>', 'DISK').action(this.remove.bind(this));
     this.diskMode.command('dirhd', 'DISK').action(this.list.bind(this));
+  }
+
+  async status({ name }, cb) {
+    try {
+      const disk = this.storage.mainDisksInfo[name];
+
+      if (!disk) {
+        throw new Error(`Disk with name '${name} not exists.'`);
+      }
+
+      const blocks = parseInt(disk.blocks);
+      const blockSize = parseInt(disk.blocksize);
+
+      const diskStorageInfo = new DiskStorage(name, blocks, blockSize);
+      diskStorageInfo.fromBinary();
+
+      const totalSize = blocks * blockSize;
+      const availableSize = diskStorageInfo.diskTree.availableBlocks.reduce((curr, item) => {
+        const spaceSize = parseInt(item.split(':')[1]) * blockSize;
+
+        return curr + spaceSize;
+      }, 0);
+
+      this.diskMode.log(
+        colors['cyan'](`[DISK] ${name}\n`)
+      );
+
+      this.diskMode.log(
+        colors['blue'](`Total size: ${totalSize} Bytes`)
+      );
+
+      this.diskMode.log(
+        colors['red'](`Used size: ${totalSize - availableSize} Bytes`)
+      );
+
+      this.diskMode.log(
+        colors['green'](`Available size: ${availableSize} Bytes\n`)
+      );
+
+      cb();
+    } catch (e) {
+      cb(colors['red'](e.message || e));
+    }
   }
 
   async create(args, cb) {
     const result = createValidation(args);
+
     if (result.error) {
       const err = `\nFailed to create disk, try again:\n${util.inspect(result.error.details, false, Infinity)}\n`;
       cb(colors['red'](err));
     }
+
     try {
       const bytes = this.storage.getAvailableBlock();
       await operations.createDisk(args);
@@ -45,6 +92,22 @@ class DiskCmd {
       );
 
       cb(null);
+    } catch (err) {
+      cb(colors['red'](err));
+    }
+  }
+
+  async remove({ name }, cb) {
+    try {
+      await operations.unPersistDisk(name);
+      await operations.removeDisk(name);
+      await this.storage.synchronizeDisksInfo();
+
+      this.diskMode.log(
+        colors['green'](`\n[DISK] Virtual disk ${name} removed successfully\n`)
+      );
+
+      cb();
     } catch (err) {
       cb(colors['red'](err));
     }
@@ -100,13 +163,20 @@ class DiskCmd {
 
   list(args, cb) {
     try {
-      this.diskMode.log(colors['green']('\nAvailable disks: '));
-      const disks = Object.keys(this.storage.mainDisksInfo);
-      const data = this.storage.mainDisksInfo;
-      for (let i = 0; i < disks.length; i++) {
-        this.diskMode.log(colors['blue'](`${disks[i]} - ${data[disks[i]].blocks * data[disks[i]].blocksize} bytes`));
+      const diskNames = Object.keys(this.storage.mainDisksInfo);
+
+      if (diskNames.length > 0) {
+        this.diskMode.log(colors['green']('\nAvailable disks: '));
+
+        for (const name of diskNames) {
+          const disk = this.storage.mainDisksInfo[name];
+
+          this.diskMode.log(colors['blue'](`${name} - ${disk.blocks * disk.blocksize} bytes`));
+        }
+
+        this.diskMode.log('\n');
       }
-      this.diskMode.log('\n');
+
       cb();
     } catch (err) {
       cb(new Error(colors.red(`Listing errors: ${err}`)));
