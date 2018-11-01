@@ -58,6 +58,9 @@ class FileCmd {
     // Move file/folder
     this.replCmd.command('mv <source> <dist>', 'FILE/DIR').action(this.move.bind(this));
 
+    // Move file/folder
+    this.replCmd.command('rename <name> <newName>', 'FILE/DIR').action(this.rename.bind(this));
+
     this.replCmd.command('exitdisk', 'CLI')
   }
 
@@ -80,6 +83,16 @@ class FileCmd {
       cb();
     } else {
       cb(`Directory '${dirname}' already exists.`);
+    }
+  }
+
+  async rename({ name, newName }, cb) {
+    try {
+      this.storage.currentDisk.renameNode(name, newName);
+
+      cb();
+    } catch(e) {
+      cb(e);
     }
   }
 
