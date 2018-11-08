@@ -223,9 +223,19 @@ class FileCmd {
         output: process.stdout
       });
 
+      const onWriteLine = (line) => {
+        if (str) {
+          str += `\n${line}`
+        } else {
+          str += line
+        }
+      };
+
       const finishWriteFile = async () => {
         try {
+          rl.removeAllListeners();
           rl.close();
+
           console.log(colors.yellow('\nGOT Ctrl-Z Signal'));
           console.log(colors.blue('\nWriting bytes...'));
           const buffer = Buffer.from(str, 'ascii');
@@ -236,6 +246,7 @@ class FileCmd {
           currDisk.insertFile(file, blockIndex, blockCount);
   
           this.replCmd.show();
+          this.replCmd.show();
           this.replCmd.log(colors.green(`\nCreated the file ${file} with content:\n${str}`));
         } catch (err) {
           console.log(err);
@@ -245,16 +256,7 @@ class FileCmd {
 
       // Listen only once nigger!
       rl.once('SIGTSTP', finishWriteFile);
-      rl.once('SIGINT', finishWriteFile);
-
-      rl.on('line', (line) => {
-        if (str) {
-          str += `\n${line}`
-        } else {
-          str += line
-        }
-      })
-
+      rl.on('line', onWriteLine);
     } catch (e) {
       cb(e);
     }
