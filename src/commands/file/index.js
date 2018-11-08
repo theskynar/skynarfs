@@ -2,7 +2,9 @@
 
 const operations = require('./operations');
 const colors = require('colors');
-const readline = require('readline');
+const child_process = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
 class FileCmd {
   /**
@@ -216,47 +218,31 @@ class FileCmd {
 
       this.diskCmd.hide();
       this.replCmd.hide();
-      let str = '';
 
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
+      const tempPath = path.join(__dirname, '../../../tmp/create-file.txt');
+
+      const editor = child_process.spawn('vim', [tempPath], {
+          stdio: 'inherit'
       });
 
-      const onWriteLine = (line) => {
-        if (str) {
-          str += `\n${line}`
-        } else {
-          str += line
-        }
-      };
+      editor.on('exit', async () => {
+        this.replCmd.show();
+        const str = fs.readFileSync(tempPath, { encoding: 'utf-8' });
 
-      const finishWriteFile = async () => {
-        try {
-          rl.removeAllListeners();
-          rl.close();
-
-          console.log(colors.yellow('\nGOT Ctrl-Z Signal'));
-          console.log(colors.blue('\nWriting bytes...'));
-          const buffer = Buffer.from(str, 'ascii');
-          const blockCount = Math.ceil(buffer.length / diskInfo.blocksize);
-          const blockIndex = currDisk.nextAvailableBlock(blockCount);
-    
-          await operations.persistFile(buffer, diskInfo, blockIndex, blockCount);
-          currDisk.insertFile(file, blockIndex, blockCount);
+        console.log(colors.yellow('\nGOT Ctrl-Z Signal'));
+        console.log(colors.blue('\nWriting bytes...'));
+        const buffer = Buffer.from(str, 'ascii');
+        const blockCount = Math.ceil(buffer.length / diskInfo.blocksize);
+        const blockIndex = currDisk.nextAvailableBlock(blockCount);
   
-          this.replCmd.show();
-          this.replCmd.show();
-          this.replCmd.log(colors.green(`\nCreated the file ${file} with content:\n${str}`));
-        } catch (err) {
-          console.log(err);
-          this.replCmd.show();
-        }
-      };
-
-      // Listen only once nigger!
-      rl.once('SIGTSTP', finishWriteFile);
-      rl.on('line', onWriteLine);
+        await operations.persistFile(buffer, diskInfo, blockIndex, blockCount);
+        currDisk.insertFile(file, blockIndex, blockCount);
+        fs.unlinkSync(tempPath);
+        
+        this.replCmd.show();
+        this.replCmd.log(colors.green(`\nCreated the file ${file} with content:\n${str}`));
+        cb();
+      });
     } catch (e) {
       cb(e);
     }
