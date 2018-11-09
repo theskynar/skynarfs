@@ -110,7 +110,12 @@ function textToBin(text) {
     output = [];
   for (var i = 0; i < length; i++) {
     var bin = text[i].charCodeAt().toString(2);
-    output.push(Array(8 - bin.length + 1).join('0') + bin);
+
+    const size = 8 - bin.length + 1;
+
+    if (size > 0) {
+      output.push(Array(size).join('0') + bin);
+    }
   }
   return output.join('');
 }

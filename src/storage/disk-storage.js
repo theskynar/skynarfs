@@ -349,7 +349,7 @@ class DiskStorage {
         .split(':').map(y => parseInt(y));
 
       this.diskTree.availableBlocks.splice(leftSiblingIndex, 1);
-      this.diskTree.availableBlocks.splice(rightSiblingIndex, 1);
+      this.diskTree.availableBlocks.splice(rightSiblingIndex - 1, 1);
 
       this.diskTree.availableBlocks.unshift(`${leftIndex}:${leftCount + blockCount + rightCount}`);
     } else if (leftSiblingIndex >= 0) {

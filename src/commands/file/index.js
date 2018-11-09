@@ -63,7 +63,28 @@ class FileCmd {
     // Move file/folder
     this.replCmd.command('rename <name> <newName>', 'FILE/DIR').action(this.rename.bind(this));
 
+    // Status of available blocks
+    this.replCmd.command('status', 'STATUS').action(this.statusBlocks.bind(this));
+
     this.replCmd.command('exitdisk', 'CLI')
+  }
+
+  async statusBlocks({}, cb) {
+    try {
+      this.replCmd.log(colors.cyan(`\nAvailable Blocks:`));
+      
+      for (let avBlock of this.storage.currentDisk.diskTree.availableBlocks) {
+        const [index, size] = avBlock.split(':'); 
+        this.replCmd.log(colors.green(`In index ${index} has ${size} blocks availables`));
+      }
+
+      const tmpPath = path.join(__dirname, '../../../tmp/diskthree.json');
+      fs.writeFileSync(tmpPath, JSON.stringify(this.storage.currentDisk.diskTree), {encoding: 'utf-8'});
+
+      cb();
+    } catch (e) {
+      cb(e);
+    }
   }
 
   async enterDir({ dirname }, cb) {
