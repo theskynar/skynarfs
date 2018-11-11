@@ -46,6 +46,28 @@ async function importFile(file, disk, startBlock, blockCount) {
   }
 }
 
+async function copyFile(disk, originStartBlock, startBlock, blockCount) {
+  const filePath = path.join(__dirname, `../../../tmp/disks/${disk.name}/disk`)
+  const diskFD = await fs.open(filePath, 'r+');
+  const binUsage = disk.blocksize * blockCount;
+
+  const buff = Buffer.alloc(binUsage);
+  await fs.read(diskFD, buff, 0, buff.length, originStartBlock * disk.blocksize);
+  await fs.write(diskFD, buff, 0, buff.length, startBlock * disk.blocksize);
+}
+
+async function exportFile(diskName, outFile, startBlock, blockCount, blockSize) {
+  const filePath = path.join(__dirname, `../../../tmp/disks/${diskName}/disk`)
+  const disk = await fs.readFile(filePath, {encoding: 'utf-8'});
+
+  const init = startBlock * blockSize;
+  const finish = init + (blockCount * blockSize);
+
+  const data = disk.substring(init, finish).replace(/\u0000/g, '');
+  console.log(data);
+  await fs.writeFile(outFile, data, { encoding: 'utf-8' });
+}
+
 async function persistFile(buffer, disk, startBlock, blockCount) {
   const filePath = path.join(__dirname, `../../../tmp/disks/${disk.name}/disk`)
   const diskFD = await fs.open(filePath, 'r+');
@@ -126,5 +148,7 @@ module.exports = {
   persistFile,
   importFile,
   typeFile,
-  removeFile
+  removeFile,
+  exportFile,
+  copyFile
 };

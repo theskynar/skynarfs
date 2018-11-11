@@ -63,10 +63,31 @@ class FileCmd {
     // Move file/folder
     this.replCmd.command('rename <name> <newName>', 'FILE/DIR').action(this.rename.bind(this));
 
+    // Export file
+    this.replCmd.command('export <file> <outFile>', 'FILE').action(this.exportFile.bind(this));
+
+    // Copy
+    this.replCmd.command('copy <source> <dist>', 'FILE').action(this.copy.bind(this));
+
     // Status of available blocks
     this.replCmd.command('status', 'STATUS').action(this.statusBlocks.bind(this));
 
     this.replCmd.command('exitdisk', 'CLI')
+  }
+
+  async exportFile({ file, outFile }, cb) {
+    try {
+      const fileInfo = this.storage.currentDisk.getByName(file);
+
+      if (!fileInfo && fileInfo.type !== 'FILE') {
+        throw new Error('Cannot find file.');
+      }
+
+      const { blockSize, name } = this.storage.currentDisk;
+      await operations.exportFile(name, outFile, fileInfo.blockIndex, fileInfo.blockCount, blockSize);
+    } catch (e) {
+      cb(e);
+    }
   }
 
   async statusBlocks({}, cb) {
@@ -126,6 +147,32 @@ class FileCmd {
     } catch (e) {
       cb(e);
     }
+  }
+
+  async copy({ source, dist }, cb) {
+    try {
+      const currDisk = this.storage.currentDisk;
+      const diskInfo = this.storage.mainDisksInfo[currDisk.name];
+
+      const onCopyFile = async (blockIndex, blockCount, originBlockIndex) => {
+        await operations.copyFile(diskInfo, originBlockIndex, blockIndex, blockCount);
+      };
+
+      await this.storage.currentDisk.copy(source, dist, onCopyFile);
+      this.storage.currentDisk.toBinary();
+      cb();
+    } catch (e) {
+      cb(e);
+    }
+  }
+
+  async copyFolder({ source, dist }) {
+
+  }
+
+  async copyFile({ source, dist }) {
+    const currDisk = this.storage.currentDisk;
+    const diskInfo = this.storage.mainDisksInfo[currDisk.name];
   }
 
   async remove({ name, options }, cb) {
@@ -206,12 +253,12 @@ class FileCmd {
       }
       const fileNode = this.storage.currentDisk.getByName(file);
 
-      if (fileNode.length == 0) {
+      if (!fileNode) {
         cb(colors['red'](`\nThe file ${file} was not persist properly or it is corrupted\n`));
         return;
       }
 
-      const hasContent = await operations.typeFile(disk, fileNode[0].blockIndex, fileNode[0].blockCount, this.replCmd.log.bind(this.replCmd));
+      const hasContent = await operations.typeFile(disk, fileNode.blockIndex, fileNode.blockCount, this.replCmd.log.bind(this.replCmd));
       if (!hasContent) {
         this.replCmd.log(colors['green'](`\n[DISK] FILE ${file} HAS NO CONTENT\n`));
       }

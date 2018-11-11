@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const _ = require('lodash');
 
 /**
  * Helper class for control all disk address.
@@ -128,12 +129,12 @@ class DiskStorage {
   }
 
   /**
-   * Get name of a entity
+   * Get entity by name.
    * @returns
    * @memberof DiskStorage
    */
   getByName(name) {
-    return this.currentNode.childrens.filter((val) => val.name == name);
+    return this.currentNode.childrens.find((val) => val.name == name);
   }
 
   /**
@@ -193,6 +194,85 @@ class DiskStorage {
 
     // Restore original navigation stack, and navigate to destination folder.
     this.navigationStack = originalNavStack;
+  }
+
+  getNode(path) {
+    const splitedPath = path.split('/');
+    let current = this.currentNode;
+
+    while(current && current.type !== 'file' && splitedPath.length > 0) {
+      current = current.childrens.find(x => x.name === splitedPath[0]);
+      splitedPath.shift();
+    }
+
+    if (!current || current.type === 'file' && splitedPath.length > 0) {
+      return null;
+    }
+
+    return current;
+  }
+
+  /**
+   * Copy object to another path.
+   *
+   * @param {*} originPath
+   * @param {*} distPath
+   * @returns
+   * @memberof DiskStorage
+   */
+  async copy(originPath, distPath, onCopyFile) {
+    const originNode = this.getNode(originPath);
+  
+    if (!originNode) {
+      throw new Error('Path is invalid.');
+    }
+
+    if (originNode.type === 'file') {
+      const distPathArray = distPath.split("/");
+      const distNodeName = distPathArray.pop();
+      let distFolder = this.currentNode;
+
+      if (distPathArray.length > 0) {
+        distFolder = this.getNode(distPathArray.join('/'));
+      }
+
+      if (!distFolder) {
+        throw new Error('Dist path is invalid.');
+      }
+
+      const copyNode = _.clone(originNode);
+      copyNode.blockIndex = this.nextAvailableBlock(originNode.blockCount);
+      copyNode.name = distNodeName;
+      copyNode.createdAt = (new Date()).getTime();
+      this.removeAvailableBlock(copyNode.blockIndex, copyNode.blockCount);
+
+      distFolder.childrens.push(copyNode);
+      await onCopyFile(copyNode.blockIndex, copyNode.blockCount, originNode.blockIndex);
+    } else {
+      const distFolder = this.getNode(distPath);
+
+      if (distFolder.type === 'FILE') {
+        throw new Error('Dist path is invalid.');
+      }
+
+      const copyNode = _.clone(originNode);
+      copyNode.childrens = [];
+      copyNode.createdAt = (new Date()).getTime();
+
+      distFolder.childrens.push(copyNode);
+
+      for (const child of originNode.childrens) {
+        const isFile = child.type === 'file';
+        const childOrigin = `${originPath}/${child.name}`;
+        let childDist = `${distPath}/${copyNode.name}`;
+
+        if (isFile) {
+          childDist = `${childDist}/${child.name}`;
+        }
+
+        await this.copy(childOrigin, childDist, onCopyFile);
+      }
+    }
   }
 
   /**
